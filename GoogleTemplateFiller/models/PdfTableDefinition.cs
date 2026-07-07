@@ -1,4 +1,4 @@
-namespace PDFTemplateFiller.models
+namespace GoogleTemplateFiller.models
 {
     /// <summary>
     /// Describes a table (or any repeating multi-line block) that should be drawn on top of the

@@ -2,9 +2,9 @@
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PDFTemplateFiller", "PDFTemplateFiller\PDFTemplateFiller.csproj", "{37A5B6D4-F688-4279-9B05-2D29FA07B2A4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoogleTemplateFiller", "GoogleTemplateFiller\GoogleTemplateFiller.csproj", "{37A5B6D4-F688-4279-9B05-2D29FA07B2A4}"
 EndProject
-Project("4886F1E3-951D-4528-8B65-A439D5F28332") = "PDFTemplateFillerTest", "PDFTemplateFillerTest\PDFTemplateFillerTest.csproj", "{2AB6EBA6-3C22-4A11-AD3A-15273CABFCCF}"
+Project("4886F1E3-951D-4528-8B65-A439D5F28332") = "GoogleTemplateFillerTest", "GoogleTemplateFillerTest\GoogleTemplateFillerTest.csproj", "{2AB6EBA6-3C22-4A11-AD3A-15273CABFCCF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

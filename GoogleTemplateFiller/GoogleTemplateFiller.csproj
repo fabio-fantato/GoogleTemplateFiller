@@ -4,13 +4,13 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-		<AssemblyName>PDFTemplateFiller</AssemblyName> 
-		<RootNamespace>PDFTemplateFiller</RootNamespace>
+		<AssemblyName>GoogleTemplateFiller</AssemblyName> 
+		<RootNamespace>GoogleTemplateFiller</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
         <None Remove="Logo.png" />
-        <!-- Icon resource required by the [OSInterface] attribute (see interfaces/IPdfTemplateFillerActions.cs).
+        <!-- Icon resource required by the [OSInterface] attribute (see interfaces/IGoogleTemplateFillerActions.cs).
              This is still the original valantic logo carried over from the previous project; swap it out
              for a PDF-specific icon whenever convenient. -->
         <EmbeddedResource Include="Logo.png" />

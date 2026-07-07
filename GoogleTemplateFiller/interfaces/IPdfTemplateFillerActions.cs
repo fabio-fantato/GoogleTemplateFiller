@@ -1,6 +1,6 @@
 using OutSystems.ExternalLibraries.SDK;
 
-namespace PDFTemplateFiller.interfaces
+namespace GoogleTemplateFiller.interfaces
 {
     /// <summary>
     /// Fills a PDF template with real data for OutSystems ODC.
@@ -15,11 +15,11 @@ namespace PDFTemplateFiller.interfaces
     /// See the "fillDataJson" parameter description below for the expected JSON shape.
     /// </summary>
     [OSInterface(
-        Name = "PdfTemplateFiller",
-        IconResourceName = "PDFTemplateFiller.Logo.png",
+        Name = "GoogleTemplateFiller",
+        IconResourceName = "GoogleTemplateFiller.Logo.png",
         Description = "Fills a PDF template with data: {{key}} text substitution plus optional tables drawn at explicit coordinates. Uses PDFsharp (MIT license)."
     )]
-    public interface IPdfTemplateFillerActions
+    public interface IGoogleTemplateFillerActions
     {
         /// <summary>
         /// Fills a PDF template with the supplied field values and tables.
@@ -31,7 +31,7 @@ namespace PDFTemplateFiller.interfaces
         ///   "tables": [ { "name": "OrderItems", "page": 1, "x": 50, "y": 400, "width": 500,
         ///                 "columns": [ { "header": "Item", "width": 260 } ],
         ///                 "rows": [ [ "Widget A" ] ] } ] }
-        /// See PDFTemplateFiller.models.PdfFillRequest for the full shape and field-by-field notes.
+        /// See GoogleTemplateFiller.models.PdfFillRequest for the full shape and field-by-field notes.
         /// </param>
         /// <param name="resultFile">The filled PDF (Binary Data)</param>
         /// <param name="success">True if generation succeeded</param>

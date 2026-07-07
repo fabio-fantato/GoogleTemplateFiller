@@ -3,7 +3,7 @@
 - Done when: `dotnet test` succeeds and tests pass.
 
 ## Scope Inventory
-- Projects affected: PDFTemplateFillerTest.csproj (tests), depends on PDFTemplateFiller.csproj
+- Projects affected: GoogleTemplateFillerTest.csproj (tests), depends on GoogleTemplateFiller.csproj
 
 ## Research Summary
 - Assessment shows test project targets net10.0 and is SDK-style.

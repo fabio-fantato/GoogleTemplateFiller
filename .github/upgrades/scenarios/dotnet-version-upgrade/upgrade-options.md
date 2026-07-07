@@ -1,6 +1,6 @@
 # Upgrade Options
 
-This file summarizes the upgrade options evaluated for the PDFTemplateFiller solution based on the assessment at `.github/upgrades/scenarios/dotnet-version-upgrade/assessment.md`.
+This file summarizes the upgrade options evaluated for the GoogleTemplateFiller solution based on the assessment at `.github/upgrades/scenarios/dotnet-version-upgrade/assessment.md`.
 
 ## Context
 - Assessment found 2 projects, both already targeting `net10.0`.

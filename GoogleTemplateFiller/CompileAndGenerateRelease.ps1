@@ -2,4 +2,4 @@
 if (-Not (Test-Path -Path .\dist)) {
     New-Item -ItemType Directory -Path .\dist
 }
-Compress-Archive -Path .\bin\Release\net10.0\linux-x64\publish\* -DestinationPath .\dist\PDFTemplateFiller.zip -Force
+Compress-Archive -Path .\bin\Release\net10.0\linux-x64\publish\* -DestinationPath .\dist\GoogleTemplateFiller.zip -Force

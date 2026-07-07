@@ -1,8 +1,8 @@
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
-using PDFTemplateFiller.models;
+using GoogleTemplateFiller.models;
 
-namespace PDFTemplateFiller.services
+namespace GoogleTemplateFiller.services
 {
     /// <summary>
     /// Draws structured, multi-row tables on top of an existing PDF page using PDFsharp's

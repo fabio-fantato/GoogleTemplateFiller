@@ -5,7 +5,7 @@ using System.Reflection;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 
-namespace PDFTemplateFiller.services
+namespace GoogleTemplateFiller.services
 {
     /// <summary>
     /// Helper to obtain an XFont safely with a deterministic fallback sequence.

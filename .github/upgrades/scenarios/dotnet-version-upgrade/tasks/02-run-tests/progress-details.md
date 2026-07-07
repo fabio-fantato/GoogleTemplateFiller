@@ -1,6 +1,6 @@
 # Progress Details — 02-run-tests
 
-- Command: `dotnet test "C:\Repo\PDFTemplateFiller\PDFTemplateFiller.sln" -c Release`
+- Command: `dotnet test "C:\Repo\GoogleTemplateFiller\GoogleTemplateFiller.sln" -c Release`
 - Result: Tests succeeded: 1 passed, 1 skipped
 
 ## Summary

@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using PdfSharp.Pdf;
 
-namespace PDFTemplateFiller.services
+namespace GoogleTemplateFiller.services
 {
     /// <summary>
     /// Replaces literal "{{key}}" tokens found inside a PDF's content streams.

@@ -1,4 +1,4 @@
-﻿# PDFTemplateFiller
+﻿# GoogleTemplateFiller
 
 OutSystems ODC Custom Code (External Library) that fills a PDF template with real data, using
 PDFsharp (MIT license, v6.2.4).
@@ -10,7 +10,7 @@ Given:
 - A JSON payload describing values to insert.
 
 It returns the filled PDF as binary data, via the `FillPdfTemplate` OutSystems Server Action
-exposed by `IPdfTemplateFillerActions`.
+exposed by `IGoogleTemplateFillerActions`.
 
 Two mechanisms are combined, because a single one cannot satisfy both "use `{{key}}` notation"
 and "support tables":
@@ -35,12 +35,12 @@ PDFsharp can reliably do, rather than pretending automatic table placement works
 ## Project structure
 
 ```
-PDFTemplateFiller/
-├── interfaces/IPdfTemplateFillerActions.cs   OSInterface/OSAction - the ODC-exposed contract
-├── actions/PdfTemplateFillerActions.cs       Implementation (out resultFile/success/errorMessage)
+GoogleTemplateFiller/
+├── interfaces/IGoogleTemplateFillerActions.cs   OSInterface/OSAction - the ODC-exposed contract
+├── actions/GoogleTemplateFillerActions.cs       Implementation (out resultFile/success/errorMessage)
 ├── services/                                 Internal PDF manipulation logic (not exposed to ODC)
-│   ├── IPdfTemplateFillerService.cs
-│   ├── PdfTemplateFillerService.cs           Orchestrates: parse JSON -> replace fields -> render tables
+│   ├── IGoogleTemplateFillerService.cs
+│   ├── GoogleTemplateFillerService.cs           Orchestrates: parse JSON -> replace fields -> render tables
 │   ├── ContentStreamTextReplacer.cs          "{{key}}" substitution inside content streams
 │   └── PdfTableRenderer.cs                   Table/multi-line block drawing + pagination
 └── models/                                   Plain DTOs for JSON (de)serialization, not OSStructures
@@ -89,7 +89,7 @@ PDFTemplateFiller/
      (including the embedded DejaVu Sans) and returns the first usable XFont found.
   3. If no usable font is found, a final fallback to Courier is used to avoid throwing.
 
-- File location: resources/fonts/DejaVuSans.ttf (embedded into the PDFTemplateFiller assembly).
+- File location: resources/fonts/DejaVuSans.ttf (embedded into the GoogleTemplateFiller assembly).
 
 - If you prefer the font as a loose file copied to output instead of embedded, update
-  PDFTemplateFiller.csproj and re-run the build.
+  GoogleTemplateFiller.csproj and re-run the build.

@@ -1,10 +1,10 @@
-namespace PDFTemplateFiller.services
+namespace GoogleTemplateFiller.services
 {
     /// <summary>
     /// Fills a PDF template with real data: simple key/value substitution for "{{key}}"
     /// placeholders, plus optional structured tables drawn at explicit positions.
     /// </summary>
-    public interface IPdfTemplateFillerService
+    public interface IGoogleTemplateFillerService
     {
         /// <summary>
         /// Fills the given PDF template and returns the resulting PDF as a byte array.

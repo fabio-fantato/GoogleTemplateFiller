@@ -1,4 +1,4 @@
-namespace PDFTemplateFiller.models
+namespace GoogleTemplateFiller.models
 {
     /// <summary>
     /// Defines a single column of a table that will be rendered on top of the PDF template.

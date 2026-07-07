@@ -10,7 +10,7 @@ bin/
 obj/
 
 # Test outputs
-PDFTemplateFillerTest/test-output/
+GoogleTemplateFillerTest/test-output/
 
 # Resharper
 _ReSharper*/

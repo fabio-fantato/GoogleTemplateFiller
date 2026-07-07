@@ -29,12 +29,12 @@
   },
   "projects": [
     {
-      "path": "PDFTemplateFiller\\PDFTemplateFiller.csproj",
+      "path": "GoogleTemplateFiller\\GoogleTemplateFiller.csproj",
       "startingProject": true,
       "issues": 0,
       "storyPoints": 0,
       "properties": {
-        "appName": "PDFTemplateFiller",
+        "appName": "GoogleTemplateFiller",
         "projectKind": "ClassLibrary",
         "frameworks": [
           "net10.0"
@@ -58,12 +58,12 @@
       "features": []
     },
     {
-      "path": "PDFTemplateFillerTest\\PDFTemplateFillerTest.csproj",
+      "path": "GoogleTemplateFillerTest\\GoogleTemplateFillerTest.csproj",
       "startingProject": true,
       "issues": 0,
       "storyPoints": 0,
       "properties": {
-        "appName": "PDFTemplateFillerTest",
+        "appName": "GoogleTemplateFillerTest",
         "projectKind": "DotNetCoreApp",
         "frameworks": [
           "net10.0"

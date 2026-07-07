@@ -3,7 +3,7 @@
 - Done when: `dotnet build` succeeds for the solution in Release configuration.
 
 ## Scope Inventory
-- Projects affected: PDFTemplateFiller.csproj, PDFTemplateFillerTest.csproj
+- Projects affected: GoogleTemplateFiller.csproj, GoogleTemplateFillerTest.csproj
 - Concerns: full-solution build verification, ensure no warnings in projects touched
 
 ## Research Summary

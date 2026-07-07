@@ -1,15 +1,15 @@
-using PDFTemplateFiller.interfaces;
-using PDFTemplateFiller.services;
+using GoogleTemplateFiller.interfaces;
+using GoogleTemplateFiller.services;
 
-namespace PDFTemplateFiller.actions
+namespace GoogleTemplateFiller.actions
 {
     /// <summary>
     /// Implementation of the PDF template filler for OutSystems ODC.
     /// Delegates the actual PDF manipulation (JSON parsing, "{{key}}" text substitution, table
-    /// rendering) to <see cref="PdfTemplateFillerService"/>, and wraps it with the
+    /// rendering) to <see cref="GoogleTemplateFillerService"/>, and wraps it with the
     /// out-parameter success/error pattern used across this library's actions.
     /// </summary>
-    public class PdfTemplateFillerActions : IPdfTemplateFillerActions
+    public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
     {
         public void FillPdfTemplate(
             byte[] templatePdf,
@@ -24,7 +24,7 @@ namespace PDFTemplateFiller.actions
 
             try
             {
-                var service = new PdfTemplateFillerService();
+                var service = new GoogleTemplateFillerService();
                 resultFile = service.FillTemplate(templatePdf, fillDataJson);
                 success = true;
             }

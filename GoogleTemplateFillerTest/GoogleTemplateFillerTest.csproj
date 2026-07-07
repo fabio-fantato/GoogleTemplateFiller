@@ -20,7 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\PDFTemplateFiller\PDFTemplateFiller.csproj" />
+        <ProjectReference Include="..\GoogleTemplateFiller\GoogleTemplateFiller.csproj" />
     </ItemGroup>
 
     <ItemGroup>

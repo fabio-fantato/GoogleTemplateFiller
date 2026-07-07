@@ -7,7 +7,7 @@ using UglyToad.PdfPig.Content;
 // for every other PdfDocument reference in this file.
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 
-namespace PDFTemplateFiller.services;
+namespace GoogleTemplateFiller.services;
 
 /// <summary>
 /// Replaces "{{key}}" placeholders by locating their exact position on the page and drawing

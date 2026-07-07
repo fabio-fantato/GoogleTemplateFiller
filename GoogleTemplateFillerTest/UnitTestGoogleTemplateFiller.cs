@@ -1,4 +1,4 @@
-using PDFTemplateFiller.actions;
+using GoogleTemplateFiller.actions;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,15 +11,15 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace PDFTemplateFillerTest
+namespace GoogleTemplateFillerTest
 {
-    public class UnitTestPDFTemplateFillerTest
+    public class UnitTestGoogleTemplateFillerTest
     {
-        private readonly PdfTemplateFillerActions _actionsPdfTemplateFiller;
+        private readonly GoogleTemplateFillerActions _actionsGoogleTemplateFiller;
 
-        public UnitTestPDFTemplateFillerTest()
+        public UnitTestGoogleTemplateFillerTest()
         {
-            _actionsPdfTemplateFiller = new PdfTemplateFillerActions();
+            _actionsGoogleTemplateFiller = new GoogleTemplateFillerActions();
             // Ensure a simple font resolver is available in headless/test environments.
             // This resolver attempts to load Arial from the system fonts folder.
             try
@@ -84,7 +84,7 @@ namespace PDFTemplateFillerTest
                 requestJson = JsonSerializer.Serialize(new { fields = new Dictionary<string, string> { { "InvoiceNumber", "INV-101" }, { "CustomerName", "FileFallback" } } });
             }
 
-            _actionsPdfTemplateFiller.FillPdfTemplate(
+            _actionsGoogleTemplateFiller.FillPdfTemplate(
                 template,
                 requestJson,
                 out byte[] resultFile,
@@ -153,7 +153,7 @@ namespace PDFTemplateFillerTest
                 requestJson = JsonSerializer.Serialize(new { fields = new Dictionary<string, string> { { "InvoiceNumber", "INV-202" }, { "CustomerName", "FileFallback2" } }, tables = new object[] { } });
             }
 
-            _actionsPdfTemplateFiller.FillPdfTemplate(
+            _actionsGoogleTemplateFiller.FillPdfTemplate(
                 template,
                 requestJson,
                 out byte[] resultFile,
@@ -337,7 +337,7 @@ namespace PDFTemplateFillerTest
         [Fact]
         public void Scenario1_LoadTemplateAndFill_TextFieldsOnly()
         {
-            // Scenario folder: tests look for PDFTemplateFillerTest/scenarios/invoice_template/
+            // Scenario folder: tests look for GoogleTemplateFillerTest/scenarios/invoice_template/
             string scenarioFolder = Path.Combine(Directory.GetCurrentDirectory(), "scenarios", "invoice_template");
             Directory.CreateDirectory(scenarioFolder);
 
@@ -362,7 +362,7 @@ namespace PDFTemplateFillerTest
 
             string requestJson = LoadJson(scenario1Path);
 
-            _actionsPdfTemplateFiller.FillPdfTemplate(
+            _actionsGoogleTemplateFiller.FillPdfTemplate(
                 template,
                 requestJson,
                 out byte[] resultFile,
@@ -432,7 +432,7 @@ namespace PDFTemplateFillerTest
 
             string requestJson = LoadJson(scenario2Path);
 
-            _actionsPdfTemplateFiller.FillPdfTemplate(
+            _actionsGoogleTemplateFiller.FillPdfTemplate(
                 template,
                 requestJson,
                 out byte[] resultFile,

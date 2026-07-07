@@ -1,21 +1,21 @@
 using PdfSharp.Fonts;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
-using PDFTemplateFiller.models;
+using GoogleTemplateFiller.models;
 using System.Linq;
 using System.Text.Json;
 
-namespace PDFTemplateFiller.services
+namespace GoogleTemplateFiller.services
 {
-    /// <inheritdoc cref="IPdfTemplateFillerService"/>
-    public sealed class PdfTemplateFillerService : IPdfTemplateFillerService
+    /// <inheritdoc cref="IGoogleTemplateFillerService"/>
+    public sealed class GoogleTemplateFillerService : IGoogleTemplateFillerService
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
 
-        static PdfTemplateFillerService()
+        static GoogleTemplateFillerService()
         {
             // PDFsharp has no OS font API to rely on in headless/Linux runtimes (like OutSystems
             // ODC's container) - without an IFontResolver registered, every "new XFont(...)" call

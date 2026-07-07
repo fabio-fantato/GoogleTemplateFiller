@@ -1,4 +1,4 @@
-namespace PDFTemplateFiller.models
+namespace GoogleTemplateFiller.models
 {
     /// <summary>
     /// Top-level payload describing how a PDF template should be populated.
