@@ -13,6 +13,7 @@ public class GoogleDriveService
         var meta = new Google.Apis.Drive.v3.Data.File { Name = name, Parents = [folderId] };
         var request = service.Files.Copy(meta, fileId);
         request.Fields = "id";
+        request.SupportsAllDrives = true;
         var result = await request.ExecuteAsync();
         return result.Id;
     }
@@ -54,7 +55,9 @@ public class GoogleDriveService
     public async Task DeleteFileAsync(string token, string fileId)
     {
         using var service = CreateService(token);
-        await service.Files.Delete(fileId).ExecuteAsync();
+        var request = service.Files.Delete(fileId);
+        request.SupportsAllDrives = true;
+        await request.ExecuteAsync();
     }
 
     private static DriveService CreateService(string token) =>

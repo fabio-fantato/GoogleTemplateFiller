@@ -144,7 +144,7 @@ public class UnitTestGoogleTemplateFiller
 
     // ── Integration tests (require GOOGLE_ACCESS_TOKEN env var) ──────────────
 
-    [Fact(Skip = "Integration test — requires GOOGLE_ACCESS_TOKEN, GOOGLE_TEMPLATE_ID, GOOGLE_FOLDER_ID env vars")]
+    [Fact]
     public void Integration_Scenario1_FieldsOnly_FillsDocument()
     {
         string token = RequireToken();
@@ -163,7 +163,7 @@ public class UnitTestGoogleTemplateFiller
         Assert.Contains("docs.google.com", docUrl);
     }
 
-    [Fact(Skip = "Integration test — requires GOOGLE_ACCESS_TOKEN, GOOGLE_TEMPLATE_ID, GOOGLE_FOLDER_ID env vars")]
+    [Fact]
     public void Integration_Scenario2_FieldsAndTable_ExpandsRows()
     {
         string token = RequireToken();
@@ -181,7 +181,7 @@ public class UnitTestGoogleTemplateFiller
         Assert.NotEmpty(docId);
     }
 
-    [Fact(Skip = "Integration test — requires GOOGLE_ACCESS_TOKEN, GOOGLE_TEMPLATE_ID, GOOGLE_FOLDER_ID env vars")]
+    [Fact]
     public void Integration_Scenario3_WithImage_ReplacesImagePlaceholder()
     {
         string token = RequireToken();
@@ -234,7 +234,7 @@ public class UnitTestGoogleTemplateFiller
     {
         string? value = Environment.GetEnvironmentVariable(name);
         if (string.IsNullOrWhiteSpace(value))
-            throw new InvalidOperationException($"Environment variable '{name}' is not set.");
+            throw new InvalidOperationException($"Set env var '{name}' to run this integration test.");
         return value;
     }
 }
