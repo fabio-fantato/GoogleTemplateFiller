@@ -50,4 +50,29 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
             return string.Empty;
         }
     }
+
+    public byte[] DownloadPdfFromDrive(
+        string token,
+        string fileId,
+        out bool success,
+        out string errorMessage)
+    {
+        success = false;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var driveService = new GoogleDriveService();
+            byte[] bytes = driveService.DownloadFileAsync(token, fileId).GetAwaiter().GetResult();
+            success = true;
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.InnerException != null
+                ? $"{ex.Message} | {ex.InnerException.Message}"
+                : ex.Message;
+            return Array.Empty<byte>();
+        }
+    }
 }

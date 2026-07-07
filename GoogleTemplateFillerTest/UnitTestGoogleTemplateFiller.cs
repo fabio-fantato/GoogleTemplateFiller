@@ -160,7 +160,7 @@ public class UnitTestGoogleTemplateFiller
 
         Assert.True(success, errorMessage);
         Assert.NotEmpty(docId);
-        Assert.Contains("docs.google.com", docUrl);
+        Assert.Contains("drive.google.com", docUrl);
     }
 
     [Fact]
@@ -206,6 +206,38 @@ public class UnitTestGoogleTemplateFiller
 
         Assert.True(success, errorMessage);
         Assert.NotEmpty(docId);
+    }
+
+    [Fact]
+    public void Integration_Scenario4_FillAndDownloadPdf_ReturnsPdfBytes()
+    {
+        string token = RequireToken();
+        string templateId = RequireEnv("GOOGLE_TEMPLATE_ID");
+        string folderId = RequireEnv("GOOGLE_FOLDER_ID");
+
+        string json = LoadScenarioJson("scenario1_fields_only.json");
+        var actions = new GoogleTemplateFillerActions();
+
+        // Fill template → get PDF file ID in Drive
+        string pdfFileId = actions.FillGoogleDocTemplate(
+            token, templateId, folderId, "Test_Scenario4_Download", json,
+            out _, out bool fillSuccess, out string fillError);
+
+        Assert.True(fillSuccess, fillError);
+        Assert.NotEmpty(pdfFileId);
+
+        // Download the PDF bytes
+        byte[] pdfBytes = actions.DownloadPdfFromDrive(
+            token, pdfFileId,
+            out bool dlSuccess, out string dlError);
+
+        Assert.True(dlSuccess, dlError);
+        Assert.True(pdfBytes.Length > 0);
+        // PDF magic bytes: %PDF
+        Assert.Equal(0x25, pdfBytes[0]); // %
+        Assert.Equal(0x50, pdfBytes[1]); // P
+        Assert.Equal(0x44, pdfBytes[2]); // D
+        Assert.Equal(0x46, pdfBytes[3]); // F
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

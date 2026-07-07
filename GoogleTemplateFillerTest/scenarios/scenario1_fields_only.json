@@ -3,7 +3,8 @@
     "clientName": "Acme Corp",
     "invoiceNumber": "INV-001",
     "invoiceDate": "2024-01-15",
-    "total": "$1,500.00"
+    "invoiceDueDate": "2024-05-15",
+    "totalAmount": "$1,500.00"
   },
   "images": {},
   "tables": []

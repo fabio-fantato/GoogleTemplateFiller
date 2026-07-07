@@ -22,4 +22,15 @@ public interface IGoogleTemplateFillerActions
         [OSParameter(Description = "True if the operation succeeded.")] out bool success,
         [OSParameter(Description = "Error details if the operation failed.")] out string errorMessage
     );
+
+    [OSAction(
+        Description = "Downloads a PDF file from Google Drive by its file ID and returns the raw bytes.",
+        ReturnName = "PdfBytes",
+        ReturnDescription = "Raw PDF file bytes ready to be served or stored.")]
+    byte[] DownloadPdfFromDrive(
+        [OSParameter(Description = "Google OAuth2 access token with Drive scope.")] string token,
+        [OSParameter(Description = "ID of the PDF file in Google Drive.")] string fileId,
+        [OSParameter(Description = "True if the download succeeded.")] out bool success,
+        [OSParameter(Description = "Error details if the download failed.")] out string errorMessage
+    );
 }

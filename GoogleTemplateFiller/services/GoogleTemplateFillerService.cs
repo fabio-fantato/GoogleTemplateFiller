@@ -40,7 +40,10 @@ public class GoogleTemplateFillerService : IGoogleTemplateFillerService
         replaceRequests.AddRange(PlaceholderReplacerService.BuildTableRequests(request.Tables));
         await _docsService.BatchUpdateAsync(token, docId, replaceRequests);
 
-        string url = $"https://docs.google.com/document/d/{docId}/edit";
-        return (docId, url);
+        // 5. Export filled Doc as PDF, save to folder, delete the Doc
+        string pdfId = await _driveService.ExportAsPdfAsync(token, docId, request.FolderId, request.FileName);
+
+        string url = $"https://drive.google.com/file/d/{pdfId}/view";
+        return (pdfId, url);
     }
 }
