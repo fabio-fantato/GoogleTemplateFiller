@@ -1,33 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <!-- Target framework updated to net10.0 as requested. Confirm OutSystems compatibility before deploying. -->
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-		<AssemblyName>GoogleTemplateFiller</AssemblyName> 
-		<RootNamespace>GoogleTemplateFiller</RootNamespace>
+        <AssemblyName>GoogleTemplateFiller</AssemblyName>
+        <RootNamespace>GoogleTemplateFiller</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
         <None Remove="Logo.png" />
-        <!-- Icon resource required by the [OSInterface] attribute (see interfaces/IGoogleTemplateFillerActions.cs).
-             This is still the original valantic logo carried over from the previous project; swap it out
-             for a PDF-specific icon whenever convenient. -->
         <EmbeddedResource Include="Logo.png" />
     </ItemGroup>
 
-	<!-- Bundle an open-source DejaVuSans font for safe headless rendering (see
-		 EmbeddedFontResolver.cs, which registers this as the font used for all PDF text drawing
-         on runtimes without an OS font API, such as OutSystems ODC's Linux container). -->
-     <ItemGroup>
-		<EmbeddedResource Include="resources\fonts\DejaVuSans.ttf" Condition="Exists('resources\fonts\DejaVuSans.ttf')" />
-     </ItemGroup>
-	     
     <ItemGroup>
-        <!-- OutSystems ODC External Libraries SDK - version confirmed current on NuGet (nuget.org/packages/OutSystems.ExternalLibraries.SDK). -->
         <PackageReference Include="OutSystems.ExternalLibraries.SDK" Version="1.5.0" />
-        <PackageReference Include="PdfPig" Version="0.1.15" />
-        <!-- PDFsharp (MIT license) - version confirmed current on NuGet (nuget.org/packages/PDFSharp), targets net8.0/9.0/10.0. -->
-        <PackageReference Include="PDFsharp" Version="6.2.4" />
+        <PackageReference Include="Google.Apis.Docs.v1" Version="1.69.0.3701" />
+        <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3674" />
+        <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
     </ItemGroup>
 </Project>

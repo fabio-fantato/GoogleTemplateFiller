@@ -1,11 +1,10 @@
 {
   "fields": {
-    "CustomerName": "Jane Doe",
-    "InvoiceNumber": "INV-2026-0142",
-    "InvoiceDate": "2026-07-01",
-    "DueDate": "2026-07-31",
-    "TotalAmount": "$245.00"
+    "clientName": "Acme Corp",
+    "invoiceNumber": "INV-001",
+    "invoiceDate": "2024-01-15",
+    "total": "$1,500.00"
   },
-  "fieldAlignments": { "TotalAmount": "Right" },
+  "images": {},
   "tables": []
 }
