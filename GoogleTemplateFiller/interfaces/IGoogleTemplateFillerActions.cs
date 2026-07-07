@@ -24,6 +24,19 @@ public interface IGoogleTemplateFillerActions
     );
 
     [OSAction(
+        Description = "Inspects a Google Docs template and returns all placeholders found: text fields, image placeholders, and table definitions with their field names. Use this to validate your JSON payload before filling.",
+        ReturnName = "FieldsJson",
+        ReturnDescription = "JSON array of text field placeholder names found in the template.")]
+    string InspectTemplate(
+        [OSParameter(Description = "Google OAuth2 access token.")] string token,
+        [OSParameter(Description = "ID of the Google Docs template to inspect.")] string templateId,
+        [OSParameter(Description = "JSON array of image placeholder objects (name, width, height).")] out string imagesJson,
+        [OSParameter(Description = "JSON array of table objects with id and fields array.")] out string tablesJson,
+        [OSParameter(Description = "True if the inspection succeeded.")] out bool success,
+        [OSParameter(Description = "Error details if the inspection failed.")] out string errorMessage
+    );
+
+    [OSAction(
         Description = "Downloads a PDF file from Google Drive by its file ID and returns the raw bytes.",
         ReturnName = "PdfBytes",
         ReturnDescription = "Raw PDF file bytes ready to be served or stored.")]

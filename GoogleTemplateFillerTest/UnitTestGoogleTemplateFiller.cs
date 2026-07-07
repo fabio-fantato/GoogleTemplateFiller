@@ -209,6 +209,35 @@ public class UnitTestGoogleTemplateFiller
     }
 
     [Fact]
+    public void Integration_Scenario5_InspectTemplate_ReturnsPlaceholders()
+    {
+        string token = RequireToken();
+        string templateId = RequireEnv("GOOGLE_TEMPLATE_ID");
+
+        var actions = new GoogleTemplateFillerActions();
+        string fieldsJson = actions.InspectTemplate(
+            token, templateId,
+            out string imagesJson, out string tablesJson,
+            out bool success, out string errorMessage);
+
+        Assert.True(success, errorMessage);
+
+        // Results must be valid JSON arrays
+        var fields = JsonSerializer.Deserialize<List<string>>(fieldsJson);
+        var images = JsonSerializer.Deserialize<List<JsonElement>>(imagesJson);
+        var tables = JsonSerializer.Deserialize<List<JsonElement>>(tablesJson);
+
+        Assert.NotNull(fields);
+        Assert.NotNull(images);
+        Assert.NotNull(tables);
+
+        // Log for manual verification
+        Console.WriteLine($"Fields: {fieldsJson}");
+        Console.WriteLine($"Images: {imagesJson}");
+        Console.WriteLine($"Tables: {tablesJson}");
+    }
+
+    [Fact]
     public void Integration_Scenario4_FillAndDownloadPdf_ReturnsPdfBytes()
     {
         string token = RequireToken();

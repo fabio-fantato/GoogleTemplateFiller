@@ -51,6 +51,52 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
         }
     }
 
+    public string InspectTemplate(
+        string token,
+        string templateId,
+        out string imagesJson,
+        out string tablesJson,
+        out bool success,
+        out string errorMessage)
+    {
+        imagesJson = "[]";
+        tablesJson = "[]";
+        success = false;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var inspector = new TemplateInspectorService(new GoogleDocsService());
+            var result = inspector.InspectAsync(token, templateId).GetAwaiter().GetResult();
+
+            var options = new JsonSerializerOptions { WriteIndented = false };
+
+            imagesJson = JsonSerializer.Serialize(result.Images.Select(i => new
+            {
+                name = i.Name,
+                width = i.Width,
+                height = i.Height,
+                placeholder = i.RawPlaceholder
+            }), options);
+
+            tablesJson = JsonSerializer.Serialize(result.Tables.Select(t => new
+            {
+                id = t.Id,
+                fields = t.Fields
+            }), options);
+
+            success = true;
+            return JsonSerializer.Serialize(result.Fields, options);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.InnerException != null
+                ? $"{ex.Message} | {ex.InnerException.Message}"
+                : ex.Message;
+            return "[]";
+        }
+    }
+
     public byte[] DownloadPdfFromDrive(
         string token,
         string fileId,
