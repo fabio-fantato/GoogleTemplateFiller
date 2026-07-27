@@ -24,6 +24,21 @@ public interface IGoogleTemplateFillerActions
     );
 
     [OSAction(
+        Description = "Same as FillGoogleDocTemplate, but accepts the OutSystems-generated JSON shape: tables come as separate 'table1', 'table2', ... properties, each with a 'columns' map (column1, column2, ...) and 'rows' as objects keyed the same way, instead of a single 'tables' array.",
+        ReturnName = "ResultDocumentId",
+        ReturnDescription = "ID of the created Google Doc.")]
+    string FillGoogleDocTemplateOutSystems(
+        [OSParameter(Description = "Google OAuth2 access token with Docs and Drive scopes.")] string token,
+        [OSParameter(Description = "ID of the Google Docs template to copy.")] string templateId,
+        [OSParameter(Description = "ID of the destination Google Drive folder.")] string folderId,
+        [OSParameter(Description = "Name for the new document.")] string fileName,
+        [OSParameter(Description = "OutSystems-shaped JSON payload (fields, images, table1/table2/... with columns+rows).")] string requestJson,
+        [OSParameter(Description = "URL of the resulting Google Doc.")] out string resultDocumentUrl,
+        [OSParameter(Description = "True if the operation succeeded.")] out bool success,
+        [OSParameter(Description = "Error details if the operation failed.")] out string errorMessage
+    );
+
+    [OSAction(
         Description = "Inspects a Google Docs template and returns all placeholders found: text fields, image placeholders, and table definitions with their field names. Use this to validate your JSON payload before filling.",
         ReturnName = "FieldsJson",
         ReturnDescription = "JSON array of text field placeholder names found in the template.")]
