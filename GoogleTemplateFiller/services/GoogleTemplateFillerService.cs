@@ -6,17 +6,20 @@ public class GoogleTemplateFillerService : IGoogleTemplateFillerService
 {
     private readonly GoogleDriveService _driveService;
     private readonly GoogleDocsService _docsService;
+    private readonly ConditionalReplacerService _conditionalReplacer;
     private readonly TableExpanderService _tableExpander;
     private readonly ImageReplacerService _imageReplacer;
 
     public GoogleTemplateFillerService(
         GoogleDriveService driveService,
         GoogleDocsService docsService,
+        ConditionalReplacerService conditionalReplacer,
         TableExpanderService tableExpander,
         ImageReplacerService imageReplacer)
     {
         _driveService = driveService;
         _docsService = docsService;
+        _conditionalReplacer = conditionalReplacer;
         _tableExpander = tableExpander;
         _imageReplacer = imageReplacer;
     }
@@ -27,20 +30,24 @@ public class GoogleTemplateFillerService : IGoogleTemplateFillerService
         string docId = await _driveService.CopyFileAsync(
             token, request.TemplateId, request.FolderId, request.FileName);
 
-        // 2. Expand table rows that exceed the template's single data row
+        // 2. Resolve {{if:name}}...{{endif:name}} blocks first, so a falsy
+        //    block never leaves orphaned table/image/field placeholders behind
+        await _conditionalReplacer.ReplaceAsync(token, docId, request.Fields);
+
+        // 3. Expand table rows that exceed the template's single data row
         //    Must happen before text replacement so new placeholders exist in the doc
         await _tableExpander.ExpandAsync(token, docId, request.Tables);
 
-        // 3. Replace image placeholders (delete text, insert inline image)
+        // 4. Replace image placeholders (delete text, insert inline image)
         //    Done before text replacement to avoid accidentally replacing partial matches
         await _imageReplacer.ReplaceAsync(token, docId, request.Images);
 
-        // 4. Replace all text placeholders in a single batch (fields + table cells)
+        // 5. Replace all text placeholders in a single batch (fields + table cells)
         var replaceRequests = PlaceholderReplacerService.BuildFieldRequests(request.Fields);
         replaceRequests.AddRange(PlaceholderReplacerService.BuildTableRequests(request.Tables));
         await _docsService.BatchUpdateAsync(token, docId, replaceRequests);
 
-        // 5. Export filled Doc as PDF, save to folder, delete the Doc
+        // 6. Export filled Doc as PDF, save to folder, delete the Doc
         string pdfId = await _driveService.ExportAsPdfAsync(token, docId, request.FolderId, request.FileName);
 
         string url = $"https://drive.google.com/file/d/{pdfId}/view";

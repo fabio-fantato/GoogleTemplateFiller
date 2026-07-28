@@ -33,6 +33,8 @@ public class TemplateInspectorService
         var tableRowPattern = new Regex(@"^(\w+)_(\w+)_row_(\d+)$");
         // img placeholder
         var imgPattern = new Regex(@"^img:([^|]+)(.*)$");
+        // conditional block tags: if:name / endif:name
+        var conditionPattern = new Regex(@"^(if|endif):(.+)$");
 
         foreach (Match m in matches)
         {
@@ -46,6 +48,16 @@ public class TemplateInspectorService
                 var placeholder = ImagePlaceholder.Parse(raw);
                 if (placeholder != null && !result.Images.Any(i => i.Name == placeholder.Name))
                     result.Images.Add(placeholder);
+                continue;
+            }
+
+            // Conditional block tag: {{if:name}} / {{endif:name}}
+            var conditionMatch = conditionPattern.Match(inner);
+            if (conditionMatch.Success)
+            {
+                string name = conditionMatch.Groups[2].Value.Trim();
+                if (!result.Conditions.Contains(name))
+                    result.Conditions.Add(name);
                 continue;
             }
 
@@ -112,6 +124,7 @@ public class TemplateInspectionResult
     public List<string> Fields { get; set; } = new();
     public List<ImagePlaceholder> Images { get; set; } = new();
     public List<TableInspection> Tables { get; set; } = new();
+    public List<string> Conditions { get; set; } = new();
 }
 
 public class TableInspection

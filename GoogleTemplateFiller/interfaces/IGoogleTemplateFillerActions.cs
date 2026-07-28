@@ -47,6 +47,7 @@ public interface IGoogleTemplateFillerActions
         [OSParameter(Description = "ID of the Google Docs template to inspect.")] string templateId,
         [OSParameter(Description = "JSON array of image placeholder objects (name, width, height).")] out string imagesJson,
         [OSParameter(Description = "JSON array of table objects with id and fields array.")] out string tablesJson,
+        [OSParameter(Description = "JSON array of conditional block names found as {{if:name}}...{{endif:name}}.")] out string conditionsJson,
         [OSParameter(Description = "True if the inspection succeeded.")] out bool success,
         [OSParameter(Description = "Error details if the inspection failed.")] out string errorMessage
     );

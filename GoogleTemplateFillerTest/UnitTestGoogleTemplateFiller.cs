@@ -217,7 +217,7 @@ public class UnitTestGoogleTemplateFiller
         var actions = new GoogleTemplateFillerActions();
         string fieldsJson = actions.InspectTemplate(
             token, templateId,
-            out string imagesJson, out string tablesJson,
+            out string imagesJson, out string tablesJson, out string conditionsJson,
             out bool success, out string errorMessage);
 
         Assert.True(success, errorMessage);
@@ -226,15 +226,18 @@ public class UnitTestGoogleTemplateFiller
         var fields = JsonSerializer.Deserialize<List<string>>(fieldsJson);
         var images = JsonSerializer.Deserialize<List<JsonElement>>(imagesJson);
         var tables = JsonSerializer.Deserialize<List<JsonElement>>(tablesJson);
+        var conditions = JsonSerializer.Deserialize<List<string>>(conditionsJson);
 
         Assert.NotNull(fields);
         Assert.NotNull(images);
         Assert.NotNull(tables);
+        Assert.NotNull(conditions);
 
         // Log for manual verification
         Console.WriteLine($"Fields: {fieldsJson}");
         Console.WriteLine($"Images: {imagesJson}");
         Console.WriteLine($"Tables: {tablesJson}");
+        Console.WriteLine($"Conditions: {conditionsJson}");
     }
 
     [Fact]

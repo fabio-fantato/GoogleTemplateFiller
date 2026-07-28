@@ -33,6 +33,7 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
             var service = new GoogleTemplateFillerService(
                 new GoogleDriveService(),
                 new GoogleDocsService(),
+                new ConditionalReplacerService(new GoogleDocsService()),
                 new TableExpanderService(new GoogleDocsService()),
                 new ImageReplacerService(new GoogleDriveService(), new GoogleDocsService()));
 
@@ -78,6 +79,7 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
             var service = new GoogleTemplateFillerService(
                 new GoogleDriveService(),
                 new GoogleDocsService(),
+                new ConditionalReplacerService(new GoogleDocsService()),
                 new TableExpanderService(new GoogleDocsService()),
                 new ImageReplacerService(new GoogleDriveService(), new GoogleDocsService()));
 
@@ -101,11 +103,13 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
         string templateId,
         out string imagesJson,
         out string tablesJson,
+        out string conditionsJson,
         out bool success,
         out string errorMessage)
     {
         imagesJson = "[]";
         tablesJson = "[]";
+        conditionsJson = "[]";
         success = false;
         errorMessage = string.Empty;
 
@@ -129,6 +133,8 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
                 id = t.Id,
                 fields = t.Fields
             }), options);
+
+            conditionsJson = JsonSerializer.Serialize(result.Conditions, options);
 
             success = true;
             return JsonSerializer.Serialize(result.Fields, options);
