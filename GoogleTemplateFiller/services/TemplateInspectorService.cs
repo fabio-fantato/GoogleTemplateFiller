@@ -27,8 +27,8 @@ public class TemplateInspectorService
         // Match everything inside {{ }}
         var matches = Regex.Matches(text, @"\{\{([^{}]+)\}\}");
 
-        // tableId_field_row_1 → collect tables and their fields
-        var tableFields = new Dictionary<string, SortedSet<string>>();
+        // tableId_field_row_1 → collect tables and their fields (preserve first-seen order)
+        var tableFields = new Dictionary<string, List<string>>();
         // tableId_field_row_N (N>1) → ignore duplicates
         var tableRowPattern = new Regex(@"^(\w+)_(\w+)_row_(\d+)$");
         // img placeholder
@@ -73,8 +73,9 @@ public class TemplateInspectorService
                 if (rowNum == 1)
                 {
                     if (!tableFields.ContainsKey(tableId))
-                        tableFields[tableId] = new SortedSet<string>(StringComparer.Ordinal);
-                    tableFields[tableId].Add(field);
+                        tableFields[tableId] = new List<string>();
+                    if (!tableFields[tableId].Contains(field))
+                        tableFields[tableId].Add(field);
                 }
                 continue;
             }
