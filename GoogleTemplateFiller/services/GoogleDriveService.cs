@@ -18,9 +18,12 @@ public class GoogleDriveService
         return result.Id;
     }
 
-    // Uploads base64 image as a temporary Drive file, makes it publicly readable.
+    // Uploads base64 image as a temporary Drive file inside folderId, makes it publicly readable.
     // Returns (fileId, publicUrl).
-    public async Task<(string fileId, string url)> UploadTempImageAsync(string token, string base64DataUri)
+    // folderId must live on a Shared Drive: a Service Account has no storage quota of its own,
+    // so a file created with no parent (or a parent on the account's own My Drive) fails with
+    // "Service Accounts do not have storage quota" (HTTP 403).
+    public async Task<(string fileId, string url)> UploadTempImageAsync(string token, string folderId, string base64DataUri)
     {
         string mimeType = "image/png";
         string base64 = base64DataUri;
@@ -41,11 +44,12 @@ public class GoogleDriveService
         mimeType = SniffImageMimeType(imageBytes) ?? mimeType;
 
         using var service = CreateService(token);
-        var meta = new Google.Apis.Drive.v3.Data.File { Name = $"gtf_tmp_{Guid.NewGuid():N}" };
+        var meta = new Google.Apis.Drive.v3.Data.File { Name = $"gtf_tmp_{Guid.NewGuid():N}", Parents = [folderId] };
         using var stream = new MemoryStream(imageBytes);
 
         var upload = service.Files.Create(meta, stream, mimeType);
         upload.Fields = "id";
+        upload.SupportsAllDrives = true;
         var progress = await upload.UploadAsync();
         if (progress.Status != Google.Apis.Upload.UploadStatus.Completed || upload.ResponseBody == null)
             throw new InvalidOperationException(
@@ -54,7 +58,9 @@ public class GoogleDriveService
 
         // Grant anyone reader access so Google Docs API can fetch the image URL
         var permission = new Permission { Type = "anyone", Role = "reader" };
-        await service.Permissions.Create(permission, fileId).ExecuteAsync();
+        var permissionRequest = service.Permissions.Create(permission, fileId);
+        permissionRequest.SupportsAllDrives = true;
+        await permissionRequest.ExecuteAsync();
 
         string url = $"https://drive.google.com/uc?id={fileId}&export=download";
         return (fileId, url);

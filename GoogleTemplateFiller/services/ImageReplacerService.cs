@@ -17,7 +17,7 @@ public class ImageReplacerService
     // Finds all {{img:name|w:W|h:H}} placeholders, uploads images to Drive temporarily,
     // deletes placeholder text, and inserts inline images.
     // Processes placeholders from highest to lowest document index to avoid index drift.
-    public async Task ReplaceAsync(string token, string documentId, Dictionary<string, string> images)
+    public async Task ReplaceAsync(string token, string folderId, string documentId, Dictionary<string, string> images)
     {
         if (images.Count == 0) return;
 
@@ -31,7 +31,7 @@ public class ImageReplacerService
         {
             string name = entry.placeholder.Name;
             if (tempFiles.ContainsKey(name) || !images.ContainsKey(name)) continue;
-            tempFiles[name] = await _driveService.UploadTempImageAsync(token, images[name]);
+            tempFiles[name] = await _driveService.UploadTempImageAsync(token, folderId, images[name]);
         }
 
         try

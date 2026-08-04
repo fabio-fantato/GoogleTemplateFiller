@@ -40,7 +40,7 @@ public class GoogleTemplateFillerService : IGoogleTemplateFillerService
 
         // 4. Replace image placeholders (delete text, insert inline image)
         //    Done before text replacement to avoid accidentally replacing partial matches
-        await _imageReplacer.ReplaceAsync(token, docId, request.Images);
+        await _imageReplacer.ReplaceAsync(token, request.FolderId, docId, request.Images);
 
         // 5. Replace all text placeholders in a single batch (fields + table cells)
         var replaceRequests = PlaceholderReplacerService.BuildFieldRequests(request.Fields);
