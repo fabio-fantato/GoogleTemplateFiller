@@ -25,6 +25,10 @@ public class OutSystemsFillRequest
     [JsonPropertyName("images")]
     public Dictionary<string, string> Images { get; set; } = new();
 
+    // Optional: tables sent as a single "tables" array instead of "table1"/"table2"/... keys.
+    [JsonPropertyName("tables")]
+    public List<OutSystemsTableDefinition> Tables { get; set; } = new();
+
     [JsonExtensionData]
     public Dictionary<string, JsonElement> ExtensionData { get; set; } = new();
 
@@ -35,6 +39,7 @@ public class OutSystemsFillRequest
             .Select(kvp => kvp.Value.Deserialize<OutSystemsTableDefinition>())
             .Where(t => t is not null)
             .Select(t => t!.ToTableDefinition())
+            .Concat(Tables.Select(t => t.ToTableDefinition()))
             .ToList();
 
         return new GoogleFillRequest
