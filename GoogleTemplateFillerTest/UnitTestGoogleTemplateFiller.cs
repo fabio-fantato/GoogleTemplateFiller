@@ -104,14 +104,18 @@ public class UnitTestGoogleTemplateFiller
 
         var requests = GoogleTemplateFiller.services.PlaceholderReplacerService.BuildTableRequests(tables);
 
-        // 2 rows × 2 fields = 4 requests
-        Assert.Equal(4, requests.Count);
+        // 2 rows × 2 fields × 2 row-markers (row/linha) = 8 requests
+        Assert.Equal(8, requests.Count);
 
         var texts = requests.Select(r => r.ReplaceAllText.ContainsText.Text).ToList();
         Assert.Contains("{{orderItems_description_row_1}}", texts);
         Assert.Contains("{{orderItems_qty_row_1}}", texts);
         Assert.Contains("{{orderItems_description_row_2}}", texts);
         Assert.Contains("{{orderItems_qty_row_2}}", texts);
+        Assert.Contains("{{orderItems_description_linha_1}}", texts);
+        Assert.Contains("{{orderItems_qty_linha_1}}", texts);
+        Assert.Contains("{{orderItems_description_linha_2}}", texts);
+        Assert.Contains("{{orderItems_qty_linha_2}}", texts);
 
         var row1Desc = requests.First(r => r.ReplaceAllText.ContainsText.Text == "{{orderItems_description_row_1}}");
         Assert.Equal("Widget A", row1Desc.ReplaceAllText.ReplaceText);

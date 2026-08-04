@@ -27,8 +27,12 @@ public static class PlaceholderReplacerService
         return requests;
     }
 
+    // Row-marker words accepted in table placeholders: {{tableId_fieldName_row_N}}
+    // or the Portuguese variant {{tableId_fieldName_linha_N}}.
+    private static readonly string[] RowMarkers = ["row", "linha"];
+
     // Builds replaceAllText requests for table placeholders.
-    // Placeholder format: {{tableId_fieldName_row_N}}
+    // Placeholder format: {{tableId_fieldName_row_N}} (or "_linha_N")
     public static List<Request> BuildTableRequests(List<models.TableDefinition> tables)
     {
         var requests = new List<Request>();
@@ -41,21 +45,25 @@ public static class PlaceholderReplacerService
                 for (int colIdx = 0; colIdx < table.Fields.Count; colIdx++)
                 {
                     string fieldName = table.Fields[colIdx];
-                    string placeholder = $"{{{{{table.Id}_{fieldName}_row_{rowNumber}}}}}";
                     string value = colIdx < rowValues.Count ? rowValues[colIdx] ?? string.Empty : string.Empty;
 
-                    requests.Add(new Request
+                    foreach (string marker in RowMarkers)
                     {
-                        ReplaceAllText = new ReplaceAllTextRequest
+                        string placeholder = $"{{{{{table.Id}_{fieldName}_{marker}_{rowNumber}}}}}";
+
+                        requests.Add(new Request
                         {
-                            ContainsText = new SubstringMatchCriteria
+                            ReplaceAllText = new ReplaceAllTextRequest
                             {
-                                Text = placeholder,
-                                MatchCase = true
-                            },
-                            ReplaceText = value
-                        }
-                    });
+                                ContainsText = new SubstringMatchCriteria
+                                {
+                                    Text = placeholder,
+                                    MatchCase = true
+                                },
+                                ReplaceText = value
+                            }
+                        });
+                    }
                 }
             }
         }

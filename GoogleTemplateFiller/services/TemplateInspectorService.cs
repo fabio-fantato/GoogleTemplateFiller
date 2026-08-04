@@ -30,7 +30,10 @@ public class TemplateInspectorService
         // tableId_field_row_1 → collect tables and their fields (preserve first-seen order)
         var tableFields = new Dictionary<string, List<string>>();
         // tableId_field_row_N (N>1) → ignore duplicates
-        var tableRowPattern = new Regex(@"^(\w+)_(\w+)_row_(\d+)$");
+        // Lazy tableId (no underscores expected) so a field name that itself
+        // contains underscores (e.g. "modulo_nome") is captured whole in group 2.
+        // "row"/"linha" accepted as the row-marker word (PT templates use "linha").
+        var tableRowPattern = new Regex(@"^(\w+?)_(.+)_(?:row|linha)_(\d+)$", RegexOptions.IgnoreCase);
         // img placeholder
         var imgPattern = new Regex(@"^img:([^|]+)(.*)$");
         // conditional block tags: if:name / endif:name

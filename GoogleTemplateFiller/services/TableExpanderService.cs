@@ -6,6 +6,10 @@ namespace GoogleTemplateFiller.services;
 
 public class TableExpanderService
 {
+    // Row-marker words accepted in table placeholders: "row" or the
+    // Portuguese variant "linha".
+    private static readonly string[] RowMarkers = ["row", "linha"];
+
     private readonly GoogleDocsService _docsService;
 
     public TableExpanderService(GoogleDocsService docsService)
@@ -28,7 +32,7 @@ public class TableExpanderService
 
             // Read doc to locate the table and its data row
             var doc = await _docsService.GetDocumentAsync(token, documentId);
-            var (tableElement, dataRowIndex) = FindTableElement(doc, table.Id);
+            var (tableElement, dataRowIndex, rowMarker) = FindTableElement(doc, table.Id);
             if (tableElement == null) continue;
 
             int tableStartIndex = tableElement.StartIndex!.Value;
@@ -56,7 +60,7 @@ public class TableExpanderService
 
             // Re-read to get fresh indices for the new empty rows
             doc = await _docsService.GetDocumentAsync(token, documentId);
-            (tableElement, dataRowIndex) = FindTableElement(doc, table.Id);
+            (tableElement, dataRowIndex, rowMarker) = FindTableElement(doc, table.Id);
             if (tableElement == null) continue;
 
             // Collect (index, placeholderText) pairs for all new cells.
@@ -74,7 +78,7 @@ public class TableExpanderService
                     if (colIdx >= table.Fields.Count) continue;
 
                     string fieldName = table.Fields[colIdx];
-                    string placeholder = $"{{{{{table.Id}_{fieldName}_row_{rowNumber}}}}}";
+                    string placeholder = $"{{{{{table.Id}_{fieldName}_{rowMarker}_{rowNumber}}}}}";
 
                     // Insert at the start of the first paragraph in the empty cell
                     int insertIndex = row.TableCells[colIdx].Content[0].StartIndex!.Value;
@@ -100,8 +104,9 @@ public class TableExpanderService
     }
 
     // Returns the StructuralElement containing the table whose cells include
-    // "{{tableId_*_row_1}}" placeholders, and the row index of that data row.
-    private static (StructuralElement? element, int dataRowIndex) FindTableElement(Document doc, string tableId)
+    // "{{tableId_*_row_1}}" (or "_linha_1") placeholders, the row index of that
+    // data row, and which row-marker word the template actually uses.
+    private static (StructuralElement? element, int dataRowIndex, string rowMarker) FindTableElement(Document doc, string tableId)
     {
         foreach (var element in doc.Body?.Content ?? [])
         {
@@ -113,15 +118,17 @@ public class TableExpanderService
                 foreach (var cell in rows[rowIdx].TableCells ?? [])
                 {
                     string cellText = GetCellText(cell);
-                    if (cellText.Contains($"{{{{{tableId}_", StringComparison.Ordinal) &&
-                        cellText.Contains("_row_1}}", StringComparison.Ordinal))
+                    if (!cellText.Contains($"{{{{{tableId}_", StringComparison.Ordinal)) continue;
+
+                    foreach (string marker in RowMarkers)
                     {
-                        return (element, rowIdx);
+                        if (cellText.Contains($"_{marker}_1}}}}", StringComparison.Ordinal))
+                            return (element, rowIdx, marker);
                     }
                 }
             }
         }
-        return (null, -1);
+        return (null, -1, RowMarkers[0]);
     }
 
     private static string GetCellText(TableCell cell)
