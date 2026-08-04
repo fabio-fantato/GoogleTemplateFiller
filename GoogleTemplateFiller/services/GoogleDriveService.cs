@@ -35,13 +35,21 @@ public class GoogleDriveService
 
         byte[] imageBytes = Convert.FromBase64String(base64);
 
+        // The declared mimeType (from the data-URI prefix, or the "image/png"
+        // default assumed for prefix-less values) is often wrong — sniff the
+        // real format from the file's magic bytes and prefer that.
+        mimeType = SniffImageMimeType(imageBytes) ?? mimeType;
+
         using var service = CreateService(token);
         var meta = new Google.Apis.Drive.v3.Data.File { Name = $"gtf_tmp_{Guid.NewGuid():N}" };
         using var stream = new MemoryStream(imageBytes);
 
         var upload = service.Files.Create(meta, stream, mimeType);
         upload.Fields = "id";
-        await upload.UploadAsync();
+        var progress = await upload.UploadAsync();
+        if (progress.Status != Google.Apis.Upload.UploadStatus.Completed || upload.ResponseBody == null)
+            throw new InvalidOperationException(
+                $"Image upload to Drive did not complete (status: {progress.Status}).", progress.Exception);
         string fileId = upload.ResponseBody.Id;
 
         // Grant anyone reader access so Google Docs API can fetch the image URL
@@ -78,7 +86,10 @@ public class GoogleDriveService
         var upload = service.Files.Create(meta, pdfStream, "application/pdf");
         upload.Fields = "id";
         upload.SupportsAllDrives = true;
-        await upload.UploadAsync();
+        var progress = await upload.UploadAsync();
+        if (progress.Status != Google.Apis.Upload.UploadStatus.Completed || upload.ResponseBody == null)
+            throw new InvalidOperationException(
+                $"PDF upload to Drive did not complete (status: {progress.Status}).", progress.Exception);
         string pdfFileId = upload.ResponseBody.Id;
 
         // Move original Doc to trash (permanent delete often blocked by org policy)
@@ -129,6 +140,25 @@ public class GoogleDriveService
             }
             catch { }
         }
+    }
+
+    // Detects image format from magic bytes, since callers (OutSystems generators
+    // especially) often mislabel the mimeType or omit the data-URI prefix entirely.
+    private static string? SniffImageMimeType(byte[] bytes)
+    {
+        if (bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47)
+            return "image/png";
+        if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
+            return "image/jpeg";
+        if (bytes.Length >= 6 && bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38)
+            return "image/gif";
+        if (bytes.Length >= 12 &&
+            bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
+            bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50)
+            return "image/webp";
+        if (bytes.Length >= 2 && bytes[0] == 0x42 && bytes[1] == 0x4D)
+            return "image/bmp";
+        return null;
     }
 
     private static DriveService CreateService(string token) =>

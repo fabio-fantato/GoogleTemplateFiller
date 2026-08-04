@@ -1,72 +1,112 @@
-﻿# GoogleTemplateFiller
+# GoogleTemplateFiller
 
-OutSystems ODC Custom Code (External Library) that fills a PDF template with real data, using
-PDFsharp (MIT license, v6.2.4).
+OutSystems ODC Custom Code (External Library) that copies a Google Docs template, fills its
+placeholders with real data via the Google Docs and Drive APIs, and returns the resulting
+document (and optionally a PDF export).
 
-## What it does
+## Actions (`IGoogleTemplateFillerActions`)
 
-Given:
-- A PDF template as binary data.
-- A JSON payload describing values to insert.
+- **`FillGoogleDocTemplate`** — copies `templateId` into `folderId` as `fileName`, fills it with
+  a JSON payload (`fields`/`images`/`tables`, see below), and returns the new document's ID and
+  URL.
+- **`FillGoogleDocTemplateOutSystems`** — same as `FillGoogleDocTemplate`, but accepts the JSON
+  shape produced by OutSystems JSON generators: tables as `table1`/`table2`/... keys (each a
+  `columns` map + `rows` objects) or as a single `tables` array, and `images` as a flat map or
+  an array of single-key objects. See "OutSystems JSON shape" below.
+- **`InspectTemplate`** — scans a template and returns every placeholder found: plain fields,
+  image placeholders, table definitions (id + field names, in template order), and conditional
+  block names. Use this to validate a payload before filling.
+- **`DownloadPdfFromDrive`** — downloads a file from Drive by `fileId` and returns the raw bytes.
+- **`DownloadPdfFromDriveAndDelete`** — same as `DownloadPdfFromDrive`, then deletes the file
+  from Drive. Use for one-time downloads where the file must not remain in the folder. If the
+  download succeeds but the delete fails, the bytes are still returned and the delete error is
+  reported via `errorMessage`.
 
-It returns the filled PDF as binary data, via the `FillPdfTemplate` OutSystems Server Action
-exposed by `IGoogleTemplateFillerActions`.
+All actions take a Google OAuth2 access `token` with the required Docs/Drive scopes and report
+`success` + `errorMessage` as `out` parameters.
 
-Two mechanisms are combined, because a single one cannot satisfy both "use `{{key}}` notation"
-and "support tables":
+## Placeholder syntax
 
-1. **Simple fields** (`fields` in the JSON) — literal `{{key}}` tokens are replaced directly
-   inside the PDF's content stream. Fast, matches the notation, but only reliable for short,
-   single-line, single-font-run placeholders. See the header comment in
-   `services/ContentStreamTextReplacer.cs` for exactly when this can silently fail to match.
+- **Plain field**: `{{fieldName}}` → replaced by `fields.fieldName`.
+- **Image**: `{{img:name|w:200|h:150}}` → replaced by an inline image from `images.name`
+  (a base64 data URI, e.g. `data:image/png;base64,...`). `w`/`h` (points) are optional. If the
+  base64 value has no `data:` prefix, `data:image/png;base64,` is assumed.
+- **Conditional block**: `{{if:name}}...{{endif:name}}` → the block is kept or removed based on
+  whether `name` is present/truthy in the request (see `ConditionalReplacerService`).
+- **Table cell**: `{{tableId_fieldName_row_N}}` (or the Portuguese variant
+  `{{tableId_fieldName_linha_N}}`) → filled from the matching `TableDefinition`. `tableId` must
+  not contain underscores; `fieldName` may. Only row 1 needs to exist in the template — extra
+  rows are inserted and filled automatically when the table data has more than one row.
 
-2. **Tables / multi-line blocks** (`tables` in the JSON) — drawn on top of the template at
-   explicit page/X/Y coordinates using PDFsharp's `XGraphics`, with automatic pagination if a
-   table has more rows than fit on its starting page. See `services/PdfTableRenderer.cs`.
+## JSON payload shape (`FillGoogleDocTemplate`)
 
-## Why not just scan the PDF for `{{table:Name}}` and auto-detect the position?
+```json
+{
+  "templateId": "...",
+  "folderId": "...",
+  "fileName": "...",
+  "fields": { "fieldName": "value" },
+  "images": { "name": "data:image/png;base64,..." },
+  "tables": [
+    {
+      "id": "tableId",
+      "fields": ["col1", "col2"],
+      "rows": [["a", "b"], ["c", "d"]]
+    }
+  ]
+}
+```
 
-PDF content streams are flat drawing instructions, not a document object model — there is no
-built-in way to ask "where on the page does this text token render?" without a full
-text-extraction-with-positioning pass (which PDFsharp does not expose out of the box).
-Requiring explicit coordinates is more setup work up front, but it is honest about what
-PDFsharp can reliably do, rather than pretending automatic table placement works when it does not.
+## OutSystems JSON shape (`FillGoogleDocTemplateOutSystems`)
+
+Same `fields`, plus:
+
+- **Tables** — either `table1`, `table2`, ... top-level keys, or a single `tables` array:
+  ```json
+  "tables": [
+    {
+      "id": "tableId",
+      "columns": { "column1": "col1", "column2": "col2" },
+      "rows": [{ "column1": "a", "column2": "b" }]
+    }
+  ]
+  ```
+  Column order is derived by sorting the `columnN` keys numerically.
+- **Images** — a flat map (`{ "name": "data:..." }`) or an array of single-key objects
+  (`[{ "name": "data:..." }]`).
 
 ## Project structure
 
 ```
 GoogleTemplateFiller/
 ├── interfaces/IGoogleTemplateFillerActions.cs   OSInterface/OSAction - the ODC-exposed contract
-├── actions/GoogleTemplateFillerActions.cs       Implementation (out resultFile/success/errorMessage)
-├── services/                                 Internal PDF manipulation logic (not exposed to ODC)
-│   ├── IGoogleTemplateFillerService.cs
-│   ├── GoogleTemplateFillerService.cs           Orchestrates: parse JSON -> replace fields -> render tables
-│   ├── ContentStreamTextReplacer.cs          "{{key}}" substitution inside content streams
-│   └── PdfTableRenderer.cs                   Table/multi-line block drawing + pagination
-└── models/                                   Plain DTOs for JSON (de)serialization, not OSStructures
-    ├── PdfFillRequest.cs
-    ├── PdfTableDefinition.cs
-    └── PdfTableColumn.cs
+├── actions/GoogleTemplateFillerActions.cs       Implementation (out resultDocumentUrl/success/errorMessage)
+├── services/
+│   ├── GoogleTemplateFillerService.cs           Orchestrates: copy template -> fields -> tables -> images
+│   ├── GoogleDocsService.cs                     Google Docs API wrapper (get/batchUpdate)
+│   ├── GoogleDriveService.cs                    Google Drive API wrapper (copy/upload/download/delete)
+│   ├── PlaceholderReplacerService.cs            {{field}} and {{tableId_field_row_N}} replaceAllText requests
+│   ├── TableExpanderService.cs                  Inserts extra table rows for multi-row data
+│   ├── ImageReplacerService.cs                  Finds {{img:...}} placeholders, uploads + inserts inline images
+│   ├── ConditionalReplacerService.cs            {{if:name}}...{{endif:name}} block removal
+│   └── TemplateInspectorService.cs              Placeholder discovery for InspectTemplate
+└── models/                                      Plain DTOs for JSON (de)serialization, not OSStructures
+    ├── GoogleFillRequest.cs
+    ├── OutSystemsFillRequest.cs
+    ├── OutSystemsTableDefinition.cs
+    ├── TableDefinition.cs
+    ├── ImagePlaceholder.cs
+    └── ConditionalPlaceholder.cs
 ```
 
-## Verified facts (checked July 2026, with sources)
+## Testing
 
-- `OutSystems.ExternalLibraries.SDK` version `1.5.0` is current on NuGet
-  (`nuget.org/packages/OutSystems.ExternalLibraries.SDK`).
-- `PDFsharp` version `6.2.4` is current on NuGet (`nuget.org/packages/PDFSharp`), MIT licensed.
-- `PdfDictionary.PdfStream.UnfilteredValue` is **get-only** in PDFsharp (confirmed against the
-  empira/PDFsharp source on GitHub) — to read AND write back content-stream bytes, call
-  `stream.TryUnfilter()` first, then read/write through the get/set `Value` property instead.
-- `XPdfForm.FromStream(Stream)` exists and is used here (instead of `XPdfForm.FromFile` with a
-  temp file) so continuation-page cloning works entirely in memory, since ODC's hosting
-  environment may have a read-only or restricted filesystem.
+`dotnet test` runs unit tests (models/services logic) without any external dependency, plus a
+set of `Integration_*` tests that call the real Google Docs/Drive APIs and are skipped unless
+`GOOGLE_ACCESS_TOKEN` is set in the environment.
 
-## Testing checklist before production use
+## Releasing
 
-- [ ] Confirm `dotnet restore && dotnet build` succeeds with the pinned package versions above.
-- [ ] Test a template with a `{{key}}` placeholder produced by your actual PDF-generation
-      pipeline (Word export, LibreOffice export, etc.) — font/kerning behavior varies by tool.
-- [ ] Test a table that overflows onto a second page, and visually confirm the letterhead
-      /background repeats correctly on the continuation page.
-- [ ] Upload the compiled library to the ODC Portal and confirm the `[OSInterface]` icon/name/
-      description render as expected before consuming it from an app.
+`GoogleTemplateFiller/CompileAndGenerateRelease.ps1` publishes (`linux-x64`, framework-dependent)
+and zips the output into `GoogleTemplateFiller/dist/GoogleTemplateFiller.zip`, which is what gets
+uploaded to the ODC Portal and attached to GitHub releases.
