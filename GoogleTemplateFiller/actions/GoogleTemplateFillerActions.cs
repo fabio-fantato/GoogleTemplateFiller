@@ -172,4 +172,41 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
             return Array.Empty<byte>();
         }
     }
+
+    public byte[] DownloadPdfFromDriveAndDelete(
+        string token,
+        string fileId,
+        out bool success,
+        out string errorMessage)
+    {
+        success = false;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var driveService = new GoogleDriveService();
+            byte[] bytes = driveService.DownloadFileAsync(token, fileId).GetAwaiter().GetResult();
+
+            try
+            {
+                driveService.DeleteFileAsync(token, fileId).GetAwaiter().GetResult();
+            }
+            catch (Exception deleteEx)
+            {
+                errorMessage = deleteEx.InnerException != null
+                    ? $"{deleteEx.Message} | {deleteEx.InnerException.Message}"
+                    : deleteEx.Message;
+            }
+
+            success = true;
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.InnerException != null
+                ? $"{ex.Message} | {ex.InnerException.Message}"
+                : ex.Message;
+            return Array.Empty<byte>();
+        }
+    }
 }

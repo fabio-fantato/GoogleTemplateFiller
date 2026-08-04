@@ -62,4 +62,15 @@ public interface IGoogleTemplateFillerActions
         [OSParameter(Description = "True if the download succeeded.")] out bool success,
         [OSParameter(Description = "Error details if the download failed.")] out string errorMessage
     );
+
+    [OSAction(
+        Description = "Downloads a PDF file from Google Drive by its file ID and deletes it from Drive afterwards. Use for one-time downloads where the file must not remain in the folder. If the download succeeds but the delete fails, the bytes are still returned and the error is reported.",
+        ReturnName = "PdfBytes",
+        ReturnDescription = "Raw PDF file bytes ready to be served or stored.")]
+    byte[] DownloadPdfFromDriveAndDelete(
+        [OSParameter(Description = "Google OAuth2 access token with Drive scope.")] string token,
+        [OSParameter(Description = "ID of the PDF file in Google Drive.")] string fileId,
+        [OSParameter(Description = "True if the download succeeded.")] out bool success,
+        [OSParameter(Description = "Error details if the download or the delete failed.")] out string errorMessage
+    );
 }
