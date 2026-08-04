@@ -22,8 +22,11 @@ public class OutSystemsFillRequest
     [JsonPropertyName("fields")]
     public Dictionary<string, string> Fields { get; set; } = new();
 
+    // Optional: images as a single "images" map (name -> data URI), OR an array
+    // of single-key objects (e.g. [{ "companyLogo": "data:..." }]) as some
+    // OutSystems JSON generators produce.
     [JsonPropertyName("images")]
-    public Dictionary<string, string> Images { get; set; } = new();
+    public JsonElement Images { get; set; }
 
     // Optional: tables sent as a single "tables" array instead of "table1"/"table2"/... keys.
     [JsonPropertyName("tables")]
@@ -48,8 +51,42 @@ public class OutSystemsFillRequest
             FolderId = FolderId,
             FileName = FileName,
             Fields = Fields,
-            Images = Images,
+            Images = FlattenImages(Images),
             Tables = tables
         };
+    }
+
+    private static Dictionary<string, string> FlattenImages(JsonElement images)
+    {
+        var result = new Dictionary<string, string>();
+
+        switch (images.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var prop in images.EnumerateObject())
+                    result[prop.Name] = WithDataUriPrefix(prop.Value.GetString());
+                break;
+
+            case JsonValueKind.Array:
+                foreach (var item in images.EnumerateArray())
+                {
+                    if (item.ValueKind != JsonValueKind.Object) continue;
+                    foreach (var prop in item.EnumerateObject())
+                        result[prop.Name] = WithDataUriPrefix(prop.Value.GetString());
+                }
+                break;
+        }
+
+        return result;
+    }
+
+    // Adds the "data:image/png;base64," prefix when the value is raw base64
+    // (no OutSystems generator emits the data-URI prefix on its own).
+    private static string WithDataUriPrefix(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return value.StartsWith("data:", StringComparison.Ordinal)
+            ? value
+            : $"data:image/png;base64,{value}";
     }
 }
