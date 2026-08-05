@@ -14,8 +14,8 @@ public class ImageReplacerService
         _docsService = docsService;
     }
 
-    // Finds all {{img:name|w:W|h:H}} placeholders, uploads images to Drive temporarily,
-    // deletes placeholder text, and inserts inline images.
+    // Finds all {{img:name|w:W|h:H}} placeholders (in the body, headers, and footers),
+    // uploads images to Drive temporarily, deletes placeholder text, and inserts inline images.
     // Processes placeholders from highest to lowest document index to avoid index drift.
     public async Task ReplaceAsync(string token, string folderId, string documentId, Dictionary<string, string> images)
     {
@@ -36,9 +36,12 @@ public class ImageReplacerService
 
         try
         {
-            // Build requests ordered from highest to lowest index (prevents index drift)
+            // Body/header/footer segments each have their own index space, so ordering only
+            // needs to prevent drift within the same segment; group and sort accordingly.
             var requests = new List<Request>();
-            foreach (var entry in found.OrderByDescending(e => e.startIndex))
+            foreach (var entry in found
+                .OrderBy(e => e.segmentId ?? "")
+                .ThenByDescending(e => e.startIndex))
             {
                 if (!tempFiles.TryGetValue(entry.placeholder.Name, out var tempFile)) continue;
 
@@ -48,6 +51,7 @@ public class ImageReplacerService
                     {
                         Range = new Google.Apis.Docs.v1.Data.Range
                         {
+                            SegmentId = entry.segmentId,
                             StartIndex = entry.startIndex,
                             EndIndex = entry.endIndex
                         }
@@ -57,7 +61,7 @@ public class ImageReplacerService
                 {
                     InsertInlineImage = new InsertInlineImageRequest
                     {
-                        Location = new Location { Index = entry.startIndex },
+                        Location = new Location { SegmentId = entry.segmentId, Index = entry.startIndex },
                         Uri = tempFile.url,
                         ObjectSize = BuildObjectSize(entry.placeholder)
                     }
@@ -86,59 +90,87 @@ public class ImageReplacerService
         return size;
     }
 
-    private static List<(ImagePlaceholder placeholder, int startIndex, int endIndex)> FindImagePlaceholders(Document doc)
+    private static List<(ImagePlaceholder placeholder, int startIndex, int endIndex, string? segmentId)> FindImagePlaceholders(Document doc)
     {
-        var results = new List<(ImagePlaceholder, int, int)>();
-        ScanContent(doc.Body?.Content, results);
+        var results = new List<(ImagePlaceholder, int, int, string?)>();
+        ScanContent(doc.Body?.Content, results, segmentId: null);
+
+        foreach (var header in doc.Headers?.Values ?? [])
+            ScanContent(header.Content, results, header.HeaderId);
+
+        foreach (var footer in doc.Footers?.Values ?? [])
+            ScanContent(footer.Content, results, footer.FooterId);
+
         return results;
     }
 
     private static void ScanContent(
         IList<StructuralElement>? content,
-        List<(ImagePlaceholder, int, int)> results)
+        List<(ImagePlaceholder, int, int, string?)> results,
+        string? segmentId)
     {
         foreach (var element in content ?? [])
         {
             if (element.Paragraph != null)
-                ScanParagraph(element.Paragraph, results);
+                ScanParagraph(element.Paragraph, results, segmentId);
 
             if (element.Table != null)
             {
                 foreach (var row in element.Table.TableRows ?? [])
                 foreach (var cell in row.TableCells ?? [])
-                    ScanContent(cell.Content, results);
+                    ScanContent(cell.Content, results, segmentId);
             }
         }
     }
 
+    // Scans the paragraph's full text (all runs concatenated), not run-by-run: Google Docs
+    // frequently splits a pasted/duplicated placeholder across a new TextRun boundary even
+    // when visually identical to the original, which would otherwise hide the tag from a
+    // per-run scan (e.g. a duplicated {{img:name}} whose second copy silently fails to match).
     private static void ScanParagraph(
         Paragraph paragraph,
-        List<(ImagePlaceholder, int, int)> results)
+        List<(ImagePlaceholder, int, int, string?)> results,
+        string? segmentId)
     {
-        foreach (var pe in paragraph.Elements ?? [])
+        var runs = (paragraph.Elements ?? [])
+            .Where(pe => !string.IsNullOrEmpty(pe.TextRun?.Content))
+            .ToList();
+        if (runs.Count == 0) return;
+
+        var runStarts = new int[runs.Count];
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < runs.Count; i++)
         {
-            string? text = pe.TextRun?.Content;
-            if (string.IsNullOrEmpty(text)) continue;
-
-            int cursor = 0;
-            while (cursor < text.Length)
-            {
-                int imgStart = text.IndexOf("{{img:", cursor, StringComparison.Ordinal);
-                if (imgStart < 0) break;
-                int imgEnd = text.IndexOf("}}", imgStart, StringComparison.Ordinal);
-                if (imgEnd < 0) break;
-
-                string raw = text[imgStart..(imgEnd + 2)];
-                var placeholder = ImagePlaceholder.Parse(raw);
-                if (placeholder != null)
-                {
-                    int docStart = pe.StartIndex!.Value + imgStart;
-                    int docEnd = pe.StartIndex.Value + imgEnd + 2;
-                    results.Add((placeholder, docStart, docEnd));
-                }
-
-                cursor = imgEnd + 2;
-            }
+            runStarts[i] = sb.Length;
+            sb.Append(runs[i].TextRun!.Content);
         }
+        string text = sb.ToString();
+
+        int cursor = 0;
+        while (cursor < text.Length)
+        {
+            int imgStart = text.IndexOf("{{img:", cursor, StringComparison.Ordinal);
+            if (imgStart < 0) break;
+            int imgEnd = text.IndexOf("}}", imgStart, StringComparison.Ordinal);
+            if (imgEnd < 0) break;
+
+            string raw = text[imgStart..(imgEnd + 2)];
+            var placeholder = ImagePlaceholder.Parse(raw);
+            if (placeholder != null)
+            {
+                int docStart = LocalToDocIndex(imgStart, runs, runStarts);
+                int docEnd = LocalToDocIndex(imgEnd + 2, runs, runStarts);
+                results.Add((placeholder, docStart, docEnd, segmentId));
+            }
+
+            cursor = imgEnd + 2;
+        }
+    }
+
+    private static int LocalToDocIndex(int localOffset, List<ParagraphElement> runs, int[] runStarts)
+    {
+        int i = runStarts.Length - 1;
+        while (i > 0 && runStarts[i] > localOffset) i--;
+        return runs[i].StartIndex!.Value + (localOffset - runStarts[i]);
     }
 }
