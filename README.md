@@ -7,8 +7,8 @@ document (and optionally a PDF export).
 ## Actions (`IGoogleTemplateFillerActions`)
 
 - **`FillGoogleDocTemplate`** — copies `templateId` into `folderId` as `fileName`, fills it with
-  a JSON payload (`fields`/`images`/`tables`, see below), and returns the new document's ID and
-  URL.
+  a JSON payload (`fields`/`images`/`tables`, see below), and returns the filled Google **Doc's**
+  ID and URL. Does not export a PDF — see `ExportFilledDocumentAsPdf` below.
 - **`FillGoogleDocTemplateOutSystems`** — same as `FillGoogleDocTemplate`, but accepts the JSON
   shape produced by OutSystems JSON generators: tables as `table1`/`table2`/... keys (each a
   `columns` map + `rows` objects) or as a single `tables` array, and `images` as a flat map or
@@ -16,6 +16,10 @@ document (and optionally a PDF export).
 - **`InspectTemplate`** — scans a template and returns every placeholder found: plain fields,
   image placeholders, table definitions (id + field names, in template order), and conditional
   block names. Use this to validate a payload before filling.
+- **`ExportFilledDocumentAsPdf`** — exports a filled Doc (from one of the two actions above)
+  straight to PDF bytes and deletes the source Doc. Kept as a separate call from filling so a
+  consumer that only needs the Doc — or that will export later, on demand — doesn't pay the
+  export's latency on every fill. Doesn't persist the PDF to Drive; it returns the bytes directly.
 - **`DownloadPdfFromDrive`** — downloads a file from Drive by `fileId` and returns the raw bytes.
 - **`DownloadPdfFromDriveAndDelete`** — same as `DownloadPdfFromDrive`, then deletes the file
   from Drive. Use for one-time downloads where the file must not remain in the folder. If the

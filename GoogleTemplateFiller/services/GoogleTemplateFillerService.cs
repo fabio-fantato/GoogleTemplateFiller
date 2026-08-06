@@ -47,10 +47,10 @@ public class GoogleTemplateFillerService : IGoogleTemplateFillerService
         replaceRequests.AddRange(PlaceholderReplacerService.BuildTableRequests(request.Tables));
         await _docsService.BatchUpdateAsync(token, docId, replaceRequests);
 
-        // 6. Export filled Doc as PDF, save to folder, delete the Doc
-        string pdfId = await _driveService.ExportAsPdfAsync(token, docId, request.FolderId, request.FileName);
-
-        string url = $"https://drive.google.com/file/d/{pdfId}/view";
-        return (pdfId, url);
+        // No PDF export here: exporting is deferred to ExportFilledDocumentAsPdf, called
+        // on demand at download time, so the fill call itself stays well under the
+        // consumer's request timeout even for large templates.
+        string url = $"https://docs.google.com/document/d/{docId}/edit";
+        return (docId, url);
     }
 }

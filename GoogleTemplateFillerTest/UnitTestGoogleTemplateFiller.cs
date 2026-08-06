@@ -254,17 +254,17 @@ public class UnitTestGoogleTemplateFiller
         string json = LoadScenarioJson("scenario1_fields_only.json");
         var actions = new GoogleTemplateFillerActions();
 
-        // Fill template → get PDF file ID in Drive
-        string pdfFileId = actions.FillGoogleDocTemplate(
+        // Fill template → get the filled Google Doc's ID (PDF export is a separate step now)
+        string docId = actions.FillGoogleDocTemplate(
             token, templateId, folderId, "Test_Scenario4_Download", json,
             out _, out bool fillSuccess, out string fillError);
 
         Assert.True(fillSuccess, fillError);
-        Assert.NotEmpty(pdfFileId);
+        Assert.NotEmpty(docId);
 
-        // Download the PDF bytes
-        byte[] pdfBytes = actions.DownloadPdfFromDrive(
-            token, pdfFileId,
+        // Export the filled Doc to PDF on demand
+        byte[] pdfBytes = actions.ExportFilledDocumentAsPdf(
+            token, docId,
             out bool dlSuccess, out string dlError);
 
         Assert.True(dlSuccess, dlError);

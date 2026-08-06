@@ -25,14 +25,21 @@ public class ImageReplacerService
         var found = FindImagePlaceholders(doc);
         if (found.Count == 0) return;
 
-        // Upload all referenced images once
-        var tempFiles = new Dictionary<string, (string fileId, string url)>();
-        foreach (var entry in found)
-        {
-            string name = entry.placeholder.Name;
-            if (tempFiles.ContainsKey(name) || !images.ContainsKey(name)) continue;
-            tempFiles[name] = await _driveService.UploadTempImageAsync(token, folderId, images[name]);
-        }
+        // Upload all referenced images once, in parallel (each is an independent Drive
+        // upload + permission grant, so sequential uploads were pure added wall-clock).
+        var namesToUpload = found
+            .Select(e => e.placeholder.Name)
+            .Distinct()
+            .Where(images.ContainsKey)
+            .ToList();
+        var uploadTasks = namesToUpload
+            .Select(name => _driveService.UploadTempImageAsync(token, folderId, images[name]))
+            .ToList();
+        await Task.WhenAll(uploadTasks);
+
+        var tempFiles = namesToUpload
+            .Zip(uploadTasks, (name, task) => (name, result: task.Result))
+            .ToDictionary(x => x.name, x => x.result);
 
         try
         {
@@ -72,10 +79,10 @@ public class ImageReplacerService
         }
         finally
         {
-            foreach (var (fileId, _) in tempFiles.Values)
+            await Task.WhenAll(tempFiles.Values.Select(async t =>
             {
-                try { await _driveService.DeleteFileAsync(token, fileId); } catch { }
-            }
+                try { await _driveService.DeleteFileAsync(token, t.fileId); } catch { }
+            }));
         }
     }
 

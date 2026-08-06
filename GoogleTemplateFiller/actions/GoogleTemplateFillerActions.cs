@@ -148,6 +148,31 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
         }
     }
 
+    public byte[] ExportFilledDocumentAsPdf(
+        string token,
+        string documentId,
+        out bool success,
+        out string errorMessage)
+    {
+        success = false;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var driveService = new GoogleDriveService();
+            byte[] bytes = driveService.ExportDocAsPdfBytesAsync(token, documentId).GetAwaiter().GetResult();
+            success = true;
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.InnerException != null
+                ? $"{ex.Message} | {ex.InnerException.Message}"
+                : ex.Message;
+            return Array.Empty<byte>();
+        }
+    }
+
     public byte[] DownloadPdfFromDrive(
         string token,
         string fileId,

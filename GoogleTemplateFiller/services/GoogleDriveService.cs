@@ -66,12 +66,11 @@ public class GoogleDriveService
         return (fileId, url);
     }
 
-    // Exports a Google Doc as PDF, saves it to folderId, deletes the original Doc.
-    // Returns the new PDF file ID.
-    public async Task<string> ExportAsPdfAsync(string token, string docId, string folderId, string fileName)
+    // Exports a Google Doc directly to PDF bytes (no intermediate file persisted to Drive)
+    // and deletes the source Doc. Used for on-demand "download as PDF" — skips the extra
+    // upload-to-folder round trip that a persisted PDF copy would need.
+    public async Task<byte[]> ExportDocAsPdfBytesAsync(string token, string docId)
     {
-        using var service = CreateService(token);
-
         // Files.Export in the C# client library does not support supportsAllDrives.
         // Use HttpClient directly to export from Shared Drive files.
         using var http = new HttpClient();
@@ -80,25 +79,10 @@ public class GoogleDriveService
         var exportUri = $"https://www.googleapis.com/drive/v3/files/{docId}/export?mimeType=application%2Fpdf&supportsAllDrives=true";
         var response = await http.GetAsync(exportUri);
         response.EnsureSuccessStatusCode();
-        var pdfBytes = await response.Content.ReadAsByteArrayAsync();
-        using var pdfStream = new MemoryStream(pdfBytes);
+        byte[] pdfBytes = await response.Content.ReadAsByteArrayAsync();
 
-        // Upload PDF to destination folder
-        var meta = new Google.Apis.Drive.v3.Data.File
-        {
-            Name = fileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? fileName : fileName + ".pdf",
-            Parents = [folderId]
-        };
-        var upload = service.Files.Create(meta, pdfStream, "application/pdf");
-        upload.Fields = "id";
-        upload.SupportsAllDrives = true;
-        var progress = await upload.UploadAsync();
-        if (progress.Status != Google.Apis.Upload.UploadStatus.Completed || upload.ResponseBody == null)
-            throw new InvalidOperationException(
-                $"PDF upload to Drive did not complete (status: {progress.Status}).", progress.Exception);
-        string pdfFileId = upload.ResponseBody.Id;
-
-        // Move original Doc to trash (permanent delete often blocked by org policy)
+        // Move source Doc to trash (permanent delete often blocked by org policy)
+        using var service = CreateService(token);
         try
         {
             var trashMeta = new Google.Apis.Drive.v3.Data.File { Trashed = true };
@@ -108,10 +92,10 @@ public class GoogleDriveService
         }
         catch
         {
-            // Non-fatal: PDF was created; doc cleanup is best-effort
+            // Non-fatal: PDF bytes were already read; doc cleanup is best-effort
         }
 
-        return pdfFileId;
+        return pdfBytes;
     }
 
     // Downloads a Drive file as raw bytes (use for PDFs stored in Drive).
