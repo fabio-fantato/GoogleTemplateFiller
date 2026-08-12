@@ -71,42 +71,69 @@ public class GoogleDriveService
     // upload-to-folder round trip that a persisted PDF copy would need.
     public async Task<byte[]> ExportDocAsPdfBytesAsync(string token, string docId)
     {
-        // Files.Export in the C# client library does not support supportsAllDrives.
-        // Use HttpClient directly to export from Shared Drive files.
+        byte[] pdfBytes = await ExportPdfBytesAsync(token, docId);
+        await TrashFileAsync(token, docId);
+        return pdfBytes;
+    }
+
+    // Exports a Google Doc to PDF, persists that PDF as a new file inside targetFolderId,
+    // and deletes the source Doc — unlike ExportDocAsPdfBytesAsync, the PDF itself survives
+    // in Drive instead of only being returned as bytes.
+    public async Task<(string fileId, string url, byte[] bytes)> ExportDocAsPdfToFolderAsync(
+        string token, string docId, string targetFolderId)
+    {
+        byte[] pdfBytes = await ExportPdfBytesAsync(token, docId);
+
+        using var service = CreateService(token);
+        var docMeta = await service.Files.Get(docId).ExecuteAsync();
+        string pdfName = $"{docMeta.Name}.pdf";
+
+        var createMeta = new Google.Apis.Drive.v3.Data.File { Name = pdfName, Parents = [targetFolderId] };
+        using var stream = new MemoryStream(pdfBytes);
+        var upload = service.Files.Create(createMeta, stream, "application/pdf");
+        upload.Fields = "id, webViewLink";
+        upload.SupportsAllDrives = true;
+        var progress = await upload.UploadAsync();
+        if (progress.Status != Google.Apis.Upload.UploadStatus.Completed || upload.ResponseBody == null)
+            throw new InvalidOperationException(
+                $"PDF upload to Drive did not complete (status: {progress.Status}).", progress.Exception);
+
+        string pdfFileId = upload.ResponseBody.Id;
+        string pdfUrl = upload.ResponseBody.WebViewLink ?? $"https://drive.google.com/file/d/{pdfFileId}/view";
+
+        await TrashFileAsync(token, docId);
+
+        return (pdfFileId, pdfUrl, pdfBytes);
+    }
+
+    // Files.Export in the C# client library does not support supportsAllDrives.
+    // Use HttpClient directly to export from Shared Drive files.
+    private static async Task<byte[]> ExportPdfBytesAsync(string token, string docId)
+    {
         using var http = new HttpClient();
         http.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         var exportUri = $"https://www.googleapis.com/drive/v3/files/{docId}/export?mimeType=application%2Fpdf&supportsAllDrives=true";
         var response = await http.GetAsync(exportUri);
         response.EnsureSuccessStatusCode();
-        byte[] pdfBytes = await response.Content.ReadAsByteArrayAsync();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
 
-        // Move source Doc to trash (permanent delete often blocked by org policy)
+    // Moves a file to trash (permanent delete often blocked by org policy). Best-effort.
+    private async Task TrashFileAsync(string token, string fileId)
+    {
         using var service = CreateService(token);
         try
         {
             var trashMeta = new Google.Apis.Drive.v3.Data.File { Trashed = true };
-            var trashRequest = service.Files.Update(trashMeta, docId);
+            var trashRequest = service.Files.Update(trashMeta, fileId);
             trashRequest.SupportsAllDrives = true;
             await trashRequest.ExecuteAsync();
         }
         catch
         {
-            // Non-fatal: PDF bytes were already read; doc cleanup is best-effort
+            // Non-fatal: caller's primary result was already produced
         }
-
-        return pdfBytes;
-    }
-
-    // Downloads a Drive file as raw bytes (use for PDFs stored in Drive).
-    public async Task<byte[]> DownloadFileAsync(string token, string fileId)
-    {
-        using var service = CreateService(token);
-        var getRequest = service.Files.Get(fileId);
-        getRequest.SupportsAllDrives = true;
-        using var stream = new MemoryStream();
-        await getRequest.DownloadAsync(stream);
-        return stream.ToArray();
     }
 
     public async Task DeleteFileAsync(string token, string fileId)

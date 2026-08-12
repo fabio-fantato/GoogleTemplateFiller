@@ -64,24 +64,16 @@ public interface IGoogleTemplateFillerActions
     );
 
     [OSAction(
-        Description = "Downloads a PDF file from Google Drive by its file ID and returns the raw bytes.",
+        Description = "Exports a filled Google Doc (typically one returned by FillGoogleDocTemplate/FillGoogleDocTemplateOutSystems) to PDF, saves that PDF as a new file inside targetFolderId, and deletes the source Doc. Unlike ExportFilledDocumentAsPdf, the exported PDF is persisted in Drive (not only returned as bytes) and the source Doc is removed instead of kept.",
         ReturnName = "PdfBytes",
-        ReturnDescription = "Raw PDF file bytes ready to be served or stored.")]
-    byte[] DownloadPdfFromDrive(
-        [OSParameter(Description = "Google OAuth2 access token with Drive scope.")] string token,
-        [OSParameter(Description = "ID of the PDF file in Google Drive.")] string fileId,
-        [OSParameter(Description = "True if the download succeeded.")] out bool success,
-        [OSParameter(Description = "Error details if the download failed.")] out string errorMessage
-    );
-
-    [OSAction(
-        Description = "Downloads a PDF file from Google Drive by its file ID and deletes it from Drive afterwards. Use for one-time downloads where the file must not remain in the folder. If the download succeeds but the delete fails, the bytes are still returned and the error is reported.",
-        ReturnName = "PdfBytes",
-        ReturnDescription = "Raw PDF file bytes ready to be served or stored.")]
-    byte[] DownloadPdfFromDriveAndDelete(
-        [OSParameter(Description = "Google OAuth2 access token with Drive scope.")] string token,
-        [OSParameter(Description = "ID of the PDF file in Google Drive.")] string fileId,
-        [OSParameter(Description = "True if the download succeeded.")] out bool success,
-        [OSParameter(Description = "Error details if the download or the delete failed.")] out string errorMessage
+        ReturnDescription = "Raw PDF file bytes of the same file that was saved to targetFolderId.")]
+    byte[] ExportAndPreserveFilledDocumentAsPdf(
+        [OSParameter(Description = "Google OAuth2 access token with Docs and Drive scopes.")] string token,
+        [OSParameter(Description = "ID of the filled Google Doc to export and delete.")] string documentId,
+        [OSParameter(Description = "ID of the Google Drive folder where the exported PDF will be saved.")] string targetFolderId,
+        [OSParameter(Description = "ID of the PDF file created in targetFolderId.")] out string resultPdfFileId,
+        [OSParameter(Description = "URL of the PDF file created in targetFolderId.")] out string resultPdfUrl,
+        [OSParameter(Description = "True if the export succeeded.")] out bool success,
+        [OSParameter(Description = "Error details if the export failed.")] out string errorMessage
     );
 }

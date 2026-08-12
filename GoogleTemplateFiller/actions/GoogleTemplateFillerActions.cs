@@ -173,56 +173,29 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
         }
     }
 
-    public byte[] DownloadPdfFromDrive(
+    public byte[] ExportAndPreserveFilledDocumentAsPdf(
         string token,
-        string fileId,
+        string documentId,
+        string targetFolderId,
+        out string resultPdfFileId,
+        out string resultPdfUrl,
         out bool success,
         out string errorMessage)
     {
+        resultPdfFileId = string.Empty;
+        resultPdfUrl = string.Empty;
         success = false;
         errorMessage = string.Empty;
 
         try
         {
             var driveService = new GoogleDriveService();
-            byte[] bytes = driveService.DownloadFileAsync(token, fileId).GetAwaiter().GetResult();
-            success = true;
-            return bytes;
-        }
-        catch (Exception ex)
-        {
-            errorMessage = ex.InnerException != null
-                ? $"{ex.Message} | {ex.InnerException.Message}"
-                : ex.Message;
-            return Array.Empty<byte>();
-        }
-    }
+            var (pdfFileId, pdfUrl, bytes) = driveService
+                .ExportDocAsPdfToFolderAsync(token, documentId, targetFolderId)
+                .GetAwaiter().GetResult();
 
-    public byte[] DownloadPdfFromDriveAndDelete(
-        string token,
-        string fileId,
-        out bool success,
-        out string errorMessage)
-    {
-        success = false;
-        errorMessage = string.Empty;
-
-        try
-        {
-            var driveService = new GoogleDriveService();
-            byte[] bytes = driveService.DownloadFileAsync(token, fileId).GetAwaiter().GetResult();
-
-            try
-            {
-                driveService.DeleteFileAsync(token, fileId).GetAwaiter().GetResult();
-            }
-            catch (Exception deleteEx)
-            {
-                errorMessage = deleteEx.InnerException != null
-                    ? $"{deleteEx.Message} | {deleteEx.InnerException.Message}"
-                    : deleteEx.Message;
-            }
-
+            resultPdfFileId = pdfFileId;
+            resultPdfUrl = pdfUrl;
             success = true;
             return bytes;
         }

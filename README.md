@@ -20,11 +20,17 @@ document (and optionally a PDF export).
   straight to PDF bytes and deletes the source Doc. Kept as a separate call from filling so a
   consumer that only needs the Doc — or that will export later, on demand — doesn't pay the
   export's latency on every fill. Doesn't persist the PDF to Drive; it returns the bytes directly.
-- **`DownloadPdfFromDrive`** — downloads a file from Drive by `fileId` and returns the raw bytes.
-- **`DownloadPdfFromDriveAndDelete`** — same as `DownloadPdfFromDrive`, then deletes the file
-  from Drive. Use for one-time downloads where the file must not remain in the folder. If the
-  download succeeds but the delete fails, the bytes are still returned and the delete error is
-  reported via `errorMessage`.
+- **`ExportAndPreserveFilledDocumentAsPdf`** — exports a filled Doc to PDF, saves that PDF as a
+  new file inside `targetFolderId`, and deletes the source Doc. Unlike `ExportFilledDocumentAsPdf`,
+  the exported PDF is persisted in Drive (not only returned as bytes) and the source Doc is
+  removed instead of kept.
+
+### Deprecated
+
+- **`DownloadPdfFromDrive`** and **`DownloadPdfFromDriveAndDelete`** — removed. They relied on
+  the caller already having a PDF's Drive `fileId`, an old pattern from before PDFs were exported
+  on demand. Use `ExportFilledDocumentAsPdf` (bytes only) or `ExportAndPreserveFilledDocumentAsPdf`
+  (bytes + persisted in a target folder) instead.
 
 All actions take a Google OAuth2 access `token` with the required Docs/Drive scopes and report
 `success` + `errorMessage` as `out` parameters.
@@ -88,7 +94,7 @@ GoogleTemplateFiller/
 ├── services/
 │   ├── GoogleTemplateFillerService.cs           Orchestrates: copy template -> fields -> tables -> images
 │   ├── GoogleDocsService.cs                     Google Docs API wrapper (get/batchUpdate)
-│   ├── GoogleDriveService.cs                    Google Drive API wrapper (copy/upload/download/delete)
+│   ├── GoogleDriveService.cs                    Google Drive API wrapper (copy/upload/export-to-pdf/delete)
 │   ├── PlaceholderReplacerService.cs            {{field}} and {{tableId_field_row_N}} replaceAllText requests
 │   ├── TableExpanderService.cs                  Inserts extra table rows for multi-row data
 │   ├── ImageReplacerService.cs                  Finds {{img:...}} placeholders, uploads + inserts inline images
