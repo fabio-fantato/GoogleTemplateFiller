@@ -268,15 +268,53 @@ public class UnitTestGoogleTemplateFiller
             out bool dlSuccess, out string dlError);
 
         Assert.True(dlSuccess, dlError);
-        Assert.True(pdfBytes.Length > 0);
-        // PDF magic bytes: %PDF
-        Assert.Equal(0x25, pdfBytes[0]); // %
-        Assert.Equal(0x50, pdfBytes[1]); // P
-        Assert.Equal(0x44, pdfBytes[2]); // D
-        Assert.Equal(0x46, pdfBytes[3]); // F
+        AssertIsPdf(pdfBytes);
+    }
+
+    [Fact]
+    public void Integration_Scenario6_DownloadFilledDocumentAsPdf_KeepsSourceDocDownloadable()
+    {
+        string token = RequireToken();
+        string templateId = RequireEnv("GOOGLE_TEMPLATE_ID");
+        string folderId = RequireEnv("GOOGLE_FOLDER_ID");
+
+        string json = LoadScenarioJson("scenario1_fields_only.json");
+        var actions = new GoogleTemplateFillerActions();
+
+        string docId = actions.FillGoogleDocTemplate(
+            token, templateId, folderId, "Test_Scenario6_DownloadKeepSource", json,
+            out _, out bool fillSuccess, out string fillError);
+
+        Assert.True(fillSuccess, fillError);
+        Assert.NotEmpty(docId);
+
+        // First download — the source Doc must not be deleted afterwards
+        byte[] firstPdfBytes = actions.DownloadFilledDocumentAsPdf(
+            token, docId, out bool firstSuccess, out string firstError);
+
+        Assert.True(firstSuccess, firstError);
+        AssertIsPdf(firstPdfBytes);
+
+        // Second download against the same docId must still work, proving the Doc survived
+        byte[] secondPdfBytes = actions.DownloadFilledDocumentAsPdf(
+            token, docId, out bool secondSuccess, out string secondError);
+
+        Assert.True(secondSuccess, secondError);
+        AssertIsPdf(secondPdfBytes);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static void AssertIsPdf(byte[] bytes)
+    {
+        Assert.True(bytes.Length > 0);
+        // PDF magic bytes: %PDF
+        Assert.Equal(0x25, bytes[0]); // %
+        Assert.Equal(0x50, bytes[1]); // P
+        Assert.Equal(0x44, bytes[2]); // D
+        Assert.Equal(0x46, bytes[3]); // F
+    }
+
 
     private static string LoadScenarioJson(string fileName)
     {
