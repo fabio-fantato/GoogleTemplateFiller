@@ -41,7 +41,7 @@ public class GoogleDriveService
         // The declared mimeType (from the data-URI prefix, or the "image/png"
         // default assumed for prefix-less values) is often wrong — sniff the
         // real format from the file's magic bytes and prefer that.
-        mimeType = SniffImageMimeType(imageBytes) ?? mimeType;
+        mimeType = ImageMimeSniffer.Sniff(imageBytes) ?? mimeType;
 
         using var service = CreateService(token);
         var meta = new Google.Apis.Drive.v3.Data.File { Name = $"gtf_tmp_{Guid.NewGuid():N}", Parents = [folderId] };
@@ -75,6 +75,12 @@ public class GoogleDriveService
         await TrashFileAsync(token, docId);
         return pdfBytes;
     }
+
+    // Exports a Google Doc directly to PDF bytes and keeps the source Doc untouched — unlike
+    // ExportDocAsPdfBytesAsync, callable repeatedly against the same docId (e.g. from
+    // DownloadFilledDocumentAsPdf, for a Doc left alive by FillTemplateWithCallback).
+    public async Task<byte[]> ExportDocAsPdfBytesKeepSourceAsync(string token, string docId) =>
+        await ExportPdfBytesAsync(token, docId);
 
     // Exports a Google Doc to PDF, persists that PDF as a new file inside targetFolderId,
     // and deletes the source Doc — unlike ExportDocAsPdfBytesAsync, the PDF itself survives
@@ -157,25 +163,6 @@ public class GoogleDriveService
             }
             catch { }
         }
-    }
-
-    // Detects image format from magic bytes, since callers (OutSystems generators
-    // especially) often mislabel the mimeType or omit the data-URI prefix entirely.
-    private static string? SniffImageMimeType(byte[] bytes)
-    {
-        if (bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47)
-            return "image/png";
-        if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
-            return "image/jpeg";
-        if (bytes.Length >= 6 && bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38)
-            return "image/gif";
-        if (bytes.Length >= 12 &&
-            bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
-            bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50)
-            return "image/webp";
-        if (bytes.Length >= 2 && bytes[0] == 0x42 && bytes[1] == 0x4D)
-            return "image/bmp";
-        return null;
     }
 
     private static DriveService CreateService(string token) =>

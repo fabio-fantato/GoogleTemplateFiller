@@ -56,7 +56,14 @@ public class OutSystemsFillRequest
         };
     }
 
-    private static Dictionary<string, string> FlattenImages(JsonElement images)
+    private static Dictionary<string, string> FlattenImages(JsonElement images) =>
+        FlattenImageMap(images).ToDictionary(kvp => kvp.Key, kvp => WithDataUriPrefix(kvp.Value));
+
+    // Same shape-flexibility as FlattenImages (flat map, or array of single-key objects),
+    // but returns raw string values with no data-URI handling. Used both by FlattenImages
+    // (fields already contain base64) and by the callback flow (fields contain file GUIDs
+    // to resolve via downloadUri before they become base64).
+    public static Dictionary<string, string> FlattenImageMap(JsonElement images)
     {
         var result = new Dictionary<string, string>();
 
@@ -64,7 +71,7 @@ public class OutSystemsFillRequest
         {
             case JsonValueKind.Object:
                 foreach (var prop in images.EnumerateObject())
-                    result[prop.Name] = WithDataUriPrefix(prop.Value.GetString());
+                    result[prop.Name] = prop.Value.GetString() ?? string.Empty;
                 break;
 
             case JsonValueKind.Array:
@@ -72,7 +79,7 @@ public class OutSystemsFillRequest
                 {
                     if (item.ValueKind != JsonValueKind.Object) continue;
                     foreach (var prop in item.EnumerateObject())
-                        result[prop.Name] = WithDataUriPrefix(prop.Value.GetString());
+                        result[prop.Name] = prop.Value.GetString() ?? string.Empty;
                 }
                 break;
         }

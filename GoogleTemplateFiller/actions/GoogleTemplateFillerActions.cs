@@ -98,6 +98,66 @@ public class GoogleTemplateFillerActions : IGoogleTemplateFillerActions
         }
     }
 
+    public string FillTemplateWithCallback(
+        string token,
+        string requestGuid,
+        string requestUri,
+        out bool success,
+        out string errorMessage)
+    {
+        success = false;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var driveService = new GoogleDriveService();
+            var fillerService = new GoogleTemplateFillerService(
+                driveService,
+                new GoogleDocsService(),
+                new ConditionalReplacerService(new GoogleDocsService()),
+                new TableExpanderService(new GoogleDocsService()),
+                new ImageReplacerService(driveService, new GoogleDocsService()));
+
+            var callbackService = new CallbackFillService(fillerService, driveService);
+            var (fileName, _, _) = callbackService.RunAsync(token, requestGuid, requestUri).GetAwaiter().GetResult();
+
+            success = true;
+            return fileName;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.InnerException != null
+                ? $"{ex.Message} | {ex.InnerException.Message}"
+                : ex.Message;
+            return string.Empty;
+        }
+    }
+
+    public byte[] DownloadFilledDocumentAsPdf(
+        string token,
+        string documentId,
+        out bool success,
+        out string errorMessage)
+    {
+        success = false;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var driveService = new GoogleDriveService();
+            byte[] bytes = driveService.ExportDocAsPdfBytesKeepSourceAsync(token, documentId).GetAwaiter().GetResult();
+            success = true;
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.InnerException != null
+                ? $"{ex.Message} | {ex.InnerException.Message}"
+                : ex.Message;
+            return Array.Empty<byte>();
+        }
+    }
+
     public string InspectTemplate(
         string token,
         string templateId,
