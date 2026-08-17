@@ -380,6 +380,34 @@ string fileName = actions.FillTemplateWithCallback(
 // "Example uploadUri request bodies" above for exactly what that POST looks like.
 ```
 
+### `FillTemplateWithCallback` is fully synchronous — don't call it from a blocking UI action
+
+`FillTemplateWithCallback` does everything — fetch `requestUri`, download every image, fill the
+template, and (when `uploadPDFWhenCompleted` is `true`) export + upload — before it returns. It
+does **not** validate-then-return-early and keep working in the background: ODC Custom Code
+libraries run each action call in a sandboxed, per-invocation execution context with a hard 95s /
+1 GB ceiling, and there's no documented guarantee that a detached (`Task.Run`, not awaited)
+background job survives after the action returns and the response is sent — the same risk as an
+AWS Lambda freezing right after it responds. Relying on that would risk the fill silently never
+happening in production, with no way to reproduce or catch it.
+
+The safe way to keep a screen/Studio caller from blocking is to move the *call* off the
+user-facing path in OutSystems, not to make the library itself fire-and-forget:
+
+1. The screen/Client Action only writes a "pending request" record (status = `Pending`,
+   `requestGuid`, whatever context you need) and returns immediately — the user never waits on
+   `FillTemplateWithCallback` at all.
+2. A **Timer** (or an async BPT step / queue consumer) picks up pending records and calls
+   `FillTemplateWithCallback` server-side, with no browser/UI timeout attached to it.
+3. The real completion signal is `uploadUri` being called — that's what your receiver should react
+   to (mark the request `Done`/`Failed`), not the Timer's own success.
+
+Note this doesn't lift the 95s cap on the `FillTemplateWithCallback` call itself — it only moves
+who's waiting on it from "a user in Studio" to "a Timer with no UI deadline". If a single template
+is heavy enough to risk 95s even server-side (huge tables, many images, big export), keep
+`uploadPDFWhenCompleted: false` so the export step happens later in its own
+`DownloadFilledDocumentAsPdf` call instead of inside the same 95s budget as the fill.
+
 ## Project structure
 
 ```text
