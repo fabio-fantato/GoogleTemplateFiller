@@ -143,6 +143,119 @@ a Google API header):
 except that — the actual PDF only ever leaves this library via `uploadUri` or a later
 `DownloadFilledDocumentAsPdf` call.
 
+### Example `uploadUri` request bodies
+
+Three concrete shapes of the `multipart/form-data` POST body `FillTemplateWithCallback` sends to
+`uploadUri`, shown as raw multipart (boundary shortened for readability) so you can check your
+receiver parses each field correctly:
+
+**1. `uploadPDFWhenCompleted: true`, fill succeeded — file attached, `hasFile: true`:**
+
+```text
+POST /upload HTTP/1.1
+X-API-KEY: ya29.a0AfH6...
+Content-Type: multipart/form-data; boundary=----B1
+
+------B1
+Content-Disposition: form-data; name="requestGuid"
+
+8b1e2f2a-4c3d-4e9a-9a1e-6f2b3c4d5e6f
+------B1
+Content-Disposition: form-data; name="documentId"
+
+1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789
+------B1
+Content-Disposition: form-data; name="timestamp"
+
+2026-08-17T14:32:05.1234567Z
+------B1
+Content-Disposition: form-data; name="isSuccess"
+
+True
+------B1
+Content-Disposition: form-data; name="errorMessage"
+
+------B1
+Content-Disposition: form-data; name="hasFile"
+
+True
+------B1
+Content-Disposition: form-data; name="fileName"
+
+Invoice_2026.pdf
+------B1
+Content-Disposition: form-data; name="fileContent"; filename="Invoice_2026.pdf"
+Content-Type: application/pdf
+
+%PDF-1.7 ...(raw PDF bytes)...
+------B1--
+```
+
+**2. `uploadPDFWhenCompleted: false`, fill succeeded — no file, `hasFile: false`, `documentId` kept
+for a later `DownloadFilledDocumentAsPdf` call:**
+
+```text
+------B1
+Content-Disposition: form-data; name="requestGuid"
+
+8b1e2f2a-4c3d-4e9a-9a1e-6f2b3c4d5e6f
+------B1
+Content-Disposition: form-data; name="documentId"
+
+1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789
+------B1
+Content-Disposition: form-data; name="timestamp"
+
+2026-08-17T14:31:47.9876543Z
+------B1
+Content-Disposition: form-data; name="isSuccess"
+
+True
+------B1
+Content-Disposition: form-data; name="errorMessage"
+
+------B1
+Content-Disposition: form-data; name="hasFile"
+
+False
+------B1--
+```
+
+**3. Failure partway through (e.g. `downloadUri` timed out, or the template had a bad
+placeholder) — `isSuccess: false`, `errorMessage` set, no file, `documentId` empty because the
+Doc was never created:**
+
+```text
+------B1
+Content-Disposition: form-data; name="requestGuid"
+
+8b1e2f2a-4c3d-4e9a-9a1e-6f2b3c4d5e6f
+------B1
+Content-Disposition: form-data; name="documentId"
+
+------B1
+Content-Disposition: form-data; name="timestamp"
+
+2026-08-17T14:30:12.1112223Z
+------B1
+Content-Disposition: form-data; name="isSuccess"
+
+False
+------B1
+Content-Disposition: form-data; name="errorMessage"
+
+Response status code does not indicate success: 404 (Not Found).
+------B1
+Content-Disposition: form-data; name="hasFile"
+
+False
+------B1--
+```
+
+Note `documentId` is only empty when the failure happened before the fill step created the Doc
+(e.g. a bad `downloadUri`/image GUID). A failure during export (case 1's flow, but the PDF export
+itself fails) still reports the real `documentId` — the Doc exists, just wasn't exported.
+
 ### Example receiver APIs
 
 These endpoints are *not* part of this library — they're what the caller (whoever invokes
@@ -179,6 +292,93 @@ land. Define it in Service Studio (Integrations / Exposed REST API) with:
   (e.g. `File System` extension, or upload to Drive/Blob storage) keyed by `requestGuid`; if
   `false`, just record `documentId` — that's what a later `DownloadFilledDocumentAsPdf` call needs.
 - Respond `200 OK` (empty body is fine — `FillTemplateWithCallback` only checks the status code).
+
+## Action examples
+
+Every action follows the OutSystems External Library pattern: positional inputs, `out success` +
+`out errorMessage`, and one main return value. C# call shape shown below (same as
+`GoogleTemplateFillerTest/UnitTestGoogleTemplateFiller.cs`); from OutSystems it's the same
+parameters/outputs via the generated block.
+
+**`FillGoogleDocTemplate`** — inline JSON, `fields`/`images`/`tables` shape:
+
+```csharp
+var actions = new GoogleTemplateFillerActions();
+string docId = actions.FillGoogleDocTemplate(
+    token, templateId, folderId, "Invoice_2026",
+    """{"fields":{"customerName":"Acme Corp"},"images":{},"tables":[]}""",
+    out string docUrl, out bool success, out string errorMessage);
+// success = true, docId = "1AbCdEfGh...", docUrl = "https://docs.google.com/document/d/.../edit"
+```
+
+**`FillGoogleDocTemplateOutSystems`** — same, OutSystems-generated `table1`/`table2`/`columns`+`rows` shape:
+
+```csharp
+string docId = actions.FillGoogleDocTemplateOutSystems(
+    token, templateId, folderId, "Invoice_2026",
+    """{"fields":{"customerName":"Acme Corp"},"table1":{"id":"items","columns":{"column1":"name"},"rows":[{"column1":"Widget"}]}}""",
+    out string docUrl, out bool success, out string errorMessage);
+```
+
+**`InspectTemplate`** — discover placeholders before filling:
+
+```csharp
+string fieldsJson = actions.InspectTemplate(
+    token, templateId,
+    out string imagesJson, out string tablesJson, out string conditionsJson,
+    out bool success, out string errorMessage);
+// fieldsJson      = ["customerName","invoiceDate"]
+// imagesJson      = [{"name":"companyLogo","width":200,"height":150,"placeholder":"{{img:companyLogo|w:200|h:150}}"}]
+// tablesJson      = [{"id":"items","fields":["name","qty"]}]
+// conditionsJson  = ["hasDiscount"]
+```
+
+**`ExportFilledDocumentAsPdf`** — export a filled Doc to PDF bytes, **deletes** the source Doc:
+
+```csharp
+byte[] pdfBytes = actions.ExportFilledDocumentAsPdf(
+    token, docId, out bool success, out string errorMessage);
+// success = true, pdfBytes[0..3] = { 0x25, 0x50, 0x44, 0x46 } ("%PDF")
+// docId no longer exists in Drive after this call
+```
+
+**`DownloadFilledDocumentAsPdf`** — export a filled Doc to PDF bytes, **keeps** the source Doc, so
+it can be called again against the same `documentId`:
+
+```csharp
+byte[] firstPdfBytes = actions.DownloadFilledDocumentAsPdf(
+    token, docId, out bool success1, out string error1);
+// success1 = true, docId still exists in Drive
+
+byte[] secondPdfBytes = actions.DownloadFilledDocumentAsPdf(
+    token, docId, out bool success2, out string error2);
+// success2 = true — same docId, downloaded again, still not deleted
+```
+
+**`ExportAndPreserveFilledDocumentAsPdf`** — export to PDF, persist that PDF in a Drive folder,
+deletes the source Doc:
+
+```csharp
+byte[] pdfBytes = actions.ExportAndPreserveFilledDocumentAsPdf(
+    token, docId, targetFolderId,
+    out string resultPdfFileId, out string resultPdfUrl,
+    out bool success, out string errorMessage);
+// resultPdfFileId = "1XyZ..." (new Drive file, lives in targetFolderId)
+// resultPdfUrl    = "https://drive.google.com/file/d/1XyZ.../view"
+// docId no longer exists in Drive after this call; resultPdfFileId does
+```
+
+**`FillTemplateWithCallback`** — no inline JSON, just the callback trio:
+
+```csharp
+string fileName = actions.FillTemplateWithCallback(
+    token, requestGuid, requestUri,
+    out bool success, out string errorMessage);
+// success = true
+// fileName = "Invoice_2026.pdf" if uploadPDFWhenCompleted was true in requestUri's response, else ""
+// The actual result (PDF or just documentId) was already POSTed to uploadUri — see the
+// "Example uploadUri request bodies" above for exactly what that POST looks like.
+```
 
 ## Project structure
 
