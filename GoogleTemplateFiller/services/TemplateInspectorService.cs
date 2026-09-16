@@ -104,6 +104,22 @@ public class TemplateInspectorService
     {
         var sb = new System.Text.StringBuilder();
         ExtractFromContent(doc.Body?.Content, sb);
+
+        // Placeholders can also live in headers/footers (ImageReplacerService and friends
+        // already scan those when filling — inspection has to look at the same places or
+        // it reports a template as missing placeholders that actually get replaced).
+        foreach (var header in doc.Headers?.Values ?? [])
+        {
+            sb.Append('\n');
+            ExtractFromContent(header.Content, sb);
+        }
+
+        foreach (var footer in doc.Footers?.Values ?? [])
+        {
+            sb.Append('\n');
+            ExtractFromContent(footer.Content, sb);
+        }
+
         return sb.ToString();
     }
 
